@@ -1,0 +1,41 @@
+{
+    "name": "fire_small",
+    "description": "Small 10x10 room layout with localized fire and two rescue units.",
+    "width": 10,
+    "height": 10,
+    "fire": [
+        [4, 4],
+        [4, 5]
+    ],
+    "exits": [
+        [0, 9],
+        [9, 9]
+    ],
+    "survivors": [
+        [2, 2],
+        [3, 7],
+        [6, 4],
+        [7, 8],
+        [8, 2]
+    ],
+    "agents": [
+        {
+            "id": "rescue_0",
+            "position": [1, 1]
+        },
+        {
+            "id": "rescue_1",
+            "position": [8, 8]
+        }
+    ],
+    "walls": [
+        [5, 5],
+        [5, 6],
+        [6, 5]
+    ],
+    "hazard": {
+        "type": "fire",
+        "spread_probability": 0.30,
+        "max_steps": 100
+    }
+}
