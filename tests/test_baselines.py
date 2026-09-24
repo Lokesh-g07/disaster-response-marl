@@ -423,3 +423,327 @@ class TestBaselinePolicyABC:
         from baselines.rule_based import BaselinePolicy
         assert issubclass(GreedyNearestPolicy, BaselinePolicy)
         assert issubclass(GreedyLargestZonePolicy, BaselinePolicy)
+
+
+# =============================================================================
+# NEW TESTS: Task / Zone Allocation Layer
+# =============================================================================
+
+from baselines.rule_based import (
+    AgentTask,
+    AgentZoneTask,
+    TaskAllocator,
+    ZoneAllocator,
+)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. AgentTask dataclass
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestAgentTask:
+    def test_fields(self):
+        t = AgentTask(agent_id="rescue_0", target=(2, 3), assigned_at=5)
+        assert t.agent_id == "rescue_0"
+        assert t.target == (2, 3)
+        assert t.assigned_at == 5
+
+    def test_default_assigned_at(self):
+        t = AgentTask(agent_id="rescue_0", target=(0, 0))
+        assert t.assigned_at == 0
+
+
+class TestAgentZoneTask:
+    def test_fields(self):
+        t = AgentZoneTask(agent_id="rescue_0", zone_key=(1, 2),
+                          zone_centre=(4, 7), assigned_at=3)
+        assert t.zone_key == (1, 2)
+        assert t.zone_centre == (4, 7)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 7. TaskAllocator
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestTaskAllocator:
+    def _cells(self, *positions):
+        """Helper: build an np.ndarray of survivor positions."""
+        return np.array(list(positions))
+
+    def test_initial_assignment(self):
+        """First call creates a task."""
+        alloc = TaskAllocator()
+        cells = self._cells([2, 3])
+        task = alloc.assign_task("rescue_0", (0, 0), cells)
+        assert task is not None
+        assert task.target == (2, 3)
+        assert task.agent_id == "rescue_0"
+
+    def test_persists_across_calls(self):
+        """Same target returned when it is still alive."""
+        alloc = TaskAllocator()
+        cells = self._cells([2, 3], [4, 5])
+        t1 = alloc.assign_task("rescue_0", (0, 0), cells)
+        t2 = alloc.assign_task("rescue_0", (0, 1), cells)  # agent moved
+        assert t1 is t2  # same object -- not reassigned
+
+    def test_task_released_when_target_disappears(self):
+        """When the assigned survivor is rescued, a new task is selected."""
+        alloc = TaskAllocator()
+        cells_with = self._cells([1, 1], [4, 4])
+        t1 = alloc.assign_task("rescue_0", (0, 0), cells_with)
+        assert t1.target == (1, 1)  # nearest
+
+        # Survivor (1,1) is now gone (rescued/burned)
+        cells_without = self._cells([4, 4])
+        t2 = alloc.assign_task("rescue_0", (1, 1), cells_without)
+        assert t2 is not None
+        assert t2.target == (4, 4)
+
+    def test_no_survivors_returns_none(self):
+        alloc = TaskAllocator()
+        task = alloc.assign_task("rescue_0", (0, 0), np.array([]).reshape(0, 2))
+        assert task is None
+
+    def test_release_task_explicit(self):
+        """Explicit release causes a new target to be selected next call."""
+        alloc = TaskAllocator()
+        cells = self._cells([1, 0], [5, 5])
+        t1 = alloc.assign_task("rescue_0", (0, 0), cells)
+        alloc.release_task("rescue_0")
+        # After release, next call picks the nearest again from scratch
+        t2 = alloc.assign_task("rescue_0", (5, 4), cells)  # agent near (5,5)
+        assert t2 is not None
+        assert t2 is not t1  # new object
+
+    def test_reset_clears_all(self):
+        alloc = TaskAllocator()
+        cells = self._cells([3, 3])
+        alloc.assign_task("rescue_0", (0, 0), cells)
+        alloc.reset()
+        assert alloc.assignments == {}
+
+    def test_multiple_agents_independent(self):
+        """Each agent gets its own nearest-survivor task."""
+        alloc = TaskAllocator()
+        cells = self._cells([0, 2], [6, 6])
+        t0 = alloc.assign_task("rescue_0", (0, 0), cells)  # near (0,2)
+        t1 = alloc.assign_task("rescue_1", (6, 5), cells)  # near (6,6)
+        assert t0.target == (0, 2)
+        assert t1.target == (6, 6)
+
+    def test_two_agents_may_share_target(self):
+        """Both agents at equal distance select the same survivor (no conflict)."""
+        alloc = TaskAllocator()
+        cells = self._cells([2, 2])
+        t0 = alloc.assign_task("rescue_0", (0, 2), cells)
+        t1 = alloc.assign_task("rescue_1", (4, 2), cells)
+        assert t0.target == (2, 2)
+        assert t1.target == (2, 2)  # both target same survivor -- acceptable
+
+    def test_reassignment_after_rescue_integration(self):
+        """Multi-step integration: task persists, then releases on rescue."""
+        env = make_env(
+            agent_positions=[{"id": "rescue_0", "position": [0, 0]}],
+            survivor_positions=[[0, 2], [4, 4]],
+        )
+        obs, _ = env.reset(seed=0)
+        policy = GreedyNearestPolicy()
+
+        # Record initial assignment
+        policy.select_actions(obs, env)
+        initial_target = policy.task_assignments.get("rescue_0")
+        assert initial_target is not None
+
+        # Step until first rescue or episode end
+        for _ in range(20):
+            if not env.agents:
+                break
+            obs, _ = env.reset(seed=0) if not env.agents else (obs, {})
+            acts = policy.select_actions(obs, env)
+            obs, _, term, trunc, _ = env.step(acts)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8. ZoneAllocator
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestZoneAllocator:
+    def _env(self, survivors=None, agents=None, width=10, height=10):
+        return make_env(
+            width=width, height=height,
+            survivor_positions=survivors or [],
+            agent_positions=agents or [{"id": "rescue_0", "position": [0, 0]}],
+        )
+
+    def test_assigns_zone_with_most_survivors(self):
+        """Zone (0,0) has 3 survivors, zone (2,2) has 1 -- should assign (0,0)."""
+        env = self._env(survivors=[[0, 0], [0, 1], [1, 0], [7, 7]])
+        alloc = ZoneAllocator(zone_size=3)
+        cells = env.grid.get_survivor_cells()
+        task, target = alloc.assign_zone("rescue_0", (5, 5), cells, env)
+        assert task is not None
+        assert task.zone_key == (0, 0)
+        assert target is not None
+
+    def test_target_is_within_assigned_zone(self):
+        """Concrete movement target must be inside the assigned zone."""
+        env = self._env(survivors=[[0, 0], [0, 1], [1, 0]])
+        alloc = ZoneAllocator(zone_size=3)
+        cells = env.grid.get_survivor_cells()
+        task, target = alloc.assign_zone("rescue_0", (9, 9), cells, env)
+        assert task is not None
+        assert target is not None
+        # target must be a real survivor in zone (0,0)
+        zr, zc = task.zone_key
+        tr, tc = target
+        assert tr // 3 == zr
+        assert tc // 3 == zc
+
+    def test_zone_persists_while_survivors_remain(self):
+        """Assignment is not changed as long as the zone has survivors."""
+        env = self._env(survivors=[[0, 0], [0, 1]])
+        alloc = ZoneAllocator(zone_size=3)
+        cells = env.grid.get_survivor_cells()
+        t1, _ = alloc.assign_zone("rescue_0", (0, 0), cells, env)
+        t2, _ = alloc.assign_zone("rescue_0", (0, 1), cells, env)
+        assert t1 is t2  # same zone task object
+
+    def test_zone_released_when_exhausted(self):
+        """When all survivors in the zone are rescued, zone is released."""
+        env = self._env(survivors=[[0, 0], [5, 5]])
+        alloc = ZoneAllocator(zone_size=3)
+
+        # First assignment: zone (0,0) -- nearest to (0,0) survivor
+        cells_full = np.array([[0, 0], [5, 5]])
+        t1, _ = alloc.assign_zone("rescue_0", (0, 0), cells_full, env)
+        assert t1.zone_key == (0, 0)
+
+        # Zone (0,0) exhausted -- only (5,5) left in zone (1,1)
+        cells_reduced = np.array([[5, 5]])
+        t2, tgt = alloc.assign_zone("rescue_0", (0, 0), cells_reduced, env)
+        assert t2 is not None
+        assert t2.zone_key != (0, 0)  # re-allocated to new zone
+        assert t2.zone_key == (1, 1)
+
+    def test_no_survivors_returns_none(self):
+        env = self._env(survivors=[])
+        alloc = ZoneAllocator(zone_size=3)
+        task, target = alloc.assign_zone("rescue_0", (0, 0), np.array([]).reshape(0, 2), env)
+        assert task is None
+        assert target is None
+
+    def test_reset_clears_all_zones(self):
+        env = self._env(survivors=[[2, 2]])
+        alloc = ZoneAllocator(zone_size=3)
+        cells = env.grid.get_survivor_cells()
+        alloc.assign_zone("rescue_0", (0, 0), cells, env)
+        alloc.reset()
+        assert alloc.assignments == {}
+
+    def test_multiple_agents_pick_different_zones(self):
+        """Two agents with equal-population zones diverge to their closest."""
+        env = self._env(
+            width=10, height=10,
+            survivors=[[1, 1], [8, 8]],
+            agents=[
+                {"id": "rescue_0", "position": [0, 0]},
+                {"id": "rescue_1", "position": [9, 9]},
+            ],
+        )
+        alloc = ZoneAllocator(zone_size=3)
+        cells = env.grid.get_survivor_cells()
+        t0, _ = alloc.assign_zone("rescue_0", (0, 0), cells, env)
+        t1, _ = alloc.assign_zone("rescue_1", (9, 9), cells, env)
+        assert t0 is not None
+        assert t1 is not None
+        # Each agent should gravitate to the zone closest to them
+        assert t0.zone_key != t1.zone_key
+
+    def test_nearest_in_zone_correct(self):
+        """_nearest_in_zone returns the closest survivor inside the zone."""
+        alloc = ZoneAllocator(zone_size=3)
+        survivors = [(0, 0), (0, 2), (2, 2)]
+        target = alloc._nearest_in_zone((1, 1), survivors)
+        # (0,0): dist=2, (0,2): dist=2, (2,2): dist=2 -- tie -> smallest (0,0)
+        assert target == (0, 0)
+
+    def test_invalid_zone_size_raises(self):
+        with pytest.raises(ValueError):
+            ZoneAllocator(zone_size=0)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 9. GreedyNearestPolicy task_assignments property
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestGreedyNearestTaskAssignments:
+    def test_task_assignments_populated_after_call(self):
+        env = make_env(survivor_positions=[[3, 3]])
+        obs, _ = env.reset(seed=0)
+        policy = GreedyNearestPolicy()
+        policy.select_actions(obs, env)
+        assignments = policy.task_assignments
+        assert "rescue_0" in assignments
+        task = assignments["rescue_0"]
+        assert task is not None
+        assert task.target == (3, 3)
+
+    def test_reset_clears_task_assignments(self):
+        env = make_env(survivor_positions=[[3, 3]])
+        obs, _ = env.reset(seed=0)
+        policy = GreedyNearestPolicy()
+        policy.select_actions(obs, env)
+        policy.reset()
+        assert policy.task_assignments == {}
+
+    def test_no_task_when_no_survivors(self):
+        env = make_env(survivor_positions=[])
+        obs, _ = env.reset(seed=0)
+        policy = GreedyNearestPolicy()
+        policy.select_actions(obs, env)
+        for task in policy.task_assignments.values():
+            assert task is None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 10. GreedyLargestZonePolicy zone_assignments property
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestGreedyLargestZoneAssignments:
+    def test_zone_assignment_populated_after_call(self):
+        env = make_env(
+            width=9, height=9,
+            survivor_positions=[[0, 0], [0, 1], [1, 0]],
+        )
+        obs, _ = env.reset(seed=0)
+        policy = GreedyLargestZonePolicy(zone_size=3)
+        policy.select_actions(obs, env)
+        assignments = policy.zone_assignments
+        assert "rescue_0" in assignments
+        task = assignments["rescue_0"]
+        assert task is not None
+        assert task.zone_key == (0, 0)
+
+    def test_reset_clears_zone_assignments(self):
+        env = make_env(survivor_positions=[[2, 2]])
+        obs, _ = env.reset(seed=0)
+        policy = GreedyLargestZonePolicy()
+        policy.select_actions(obs, env)
+        policy.reset()
+        assert policy.zone_assignments == {}
+
+    def test_largest_zone_selected_correctly(self):
+        """Zone with 3 survivors beats zone with 1."""
+        env = make_env(
+            width=9, height=9,
+            agent_positions=[{"id": "rescue_0", "position": [5, 5]}],
+            survivor_positions=[[0, 0], [0, 1], [1, 0], [6, 6]],
+        )
+        obs, _ = env.reset(seed=0)
+        policy = GreedyLargestZonePolicy(zone_size=3)
+        policy.select_actions(obs, env)
+        task = policy.zone_assignments.get("rescue_0")
+        assert task is not None
+        assert task.zone_key == (0, 0)
+
