@@ -1,0 +1,6 @@
+episode_index,seed,scenario_name,total_reward,survivors_rescued,survivors_initial,survivors_remaining,casualties,episode_length,evacuation_success,rescue_timesteps,fire_exposures,fire_cells_final,per_agent_reward__rescue_0,per_agent_reward__rescue_1,per_agent_rescues__rescue_0,per_agent_rescues__rescue_1,per_agent_steps__rescue_0,per_agent_steps__rescue_1,per_agent_fire_exposures__rescue_0,per_agent_fire_exposures__rescue_1,inference_time_ms,evacuation_rate,average_rescue_step
+0,42,fire_small,-16.1,0,5,0,5,9,False,[],3,72,-5.45,-10.65,0,0,9,7,1,2,0.09270000737160444,0.0,
+1,43,fire_small,7.812294245007139,1,5,0,4,11,False,[10],0,57,-0.8500000000000002,8.66229424500714,0,1,8,8,0,0,0.09079999290406704,0.2,10
+2,44,fire_small,-21.4,0,5,0,5,10,False,[],4,69,-15.7,-5.7,0,0,8,8,3,1,0.05489983595907688,0.0,
+3,45,fire_small,3.3122942450071404,1,5,0,4,11,False,[10],1,60,-0.6500000000000001,3.962294245007141,0,1,10,11,0,1,0.054799835197627544,0.2,10
+4,46,fire_small,-11.598013266932453,1,5,0,4,11,False,[4],4,74,-20.55,8.951986733067548,0,1,11,8,4,0,0.05090015474706888,0.2,4

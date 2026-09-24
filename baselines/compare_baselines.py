@@ -24,7 +24,7 @@ from evaluation.evaluator import random_policy, make_mappo_greedy_policy
 from baselines import GreedyNearestPolicy, GreedyLargestZonePolicy
 
 SCENARIO = "simulation/scenarios/examples/fire_small.json"
-CHECKPOINT = "checkpoints/mappo_ep_2.pt"
+CHECKPOINT = "checkpoints/mappo_ep_10.pt"
 OUTPUT_DIR = Path("evaluation_results/comparison")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -80,7 +80,9 @@ def main():
     tmp = DisasterEnv(sc)
     action_dim = tmp.action_space(tmp.possible_agents[0]).n
     gs = (tmp.height, tmp.width, 5)
-    untrained = MAPPO(obs_shape=(4, 5, 5), global_state_shape=gs, action_dim=action_dim, device="cpu")
+    cvd = tmp.coord_vector_dim
+    untrained = MAPPO(obs_shape=(4, 5, 5), global_state_shape=gs, action_dim=action_dim,
+                      coord_vector_dim=cvd, device="cpu")
     untrained.actor.eval()
     s = ev.evaluate(make_mappo_greedy_policy(untrained), num_episodes=NUM_EPISODES, base_seed=SEED)
     s.save_json(str(OUTPUT_DIR / "untrained_mappo.json"))
@@ -95,7 +97,20 @@ def main():
         results["Trained MAPPO (greedy, ep2)"] = s
         print_row("Trained MAPPO (greedy, ep2)", s.to_dict())
     else:
-        print(f"  [SKIP] No checkpoint at {CHECKPOINT}")
+        print(f"  [SKIP] No MAPPO checkpoint at {CHECKPOINT}")
+
+    # 6. Shared DQN (greedy)
+    dqn_ckpt = Path("checkpoints/shared_dqn_ep_10.pt")
+    if dqn_ckpt.exists():
+        from rl.dqn.shared_dqn import SharedDQN, SharedDQNPolicy
+        dqn = SharedDQN(obs_shape=(4, 5, 5), coord_vector_dim=cvd, action_dim=action_dim, device="cpu")
+        dqn.load(str(dqn_ckpt))
+        s = ev.evaluate(SharedDQNPolicy(dqn), num_episodes=NUM_EPISODES, base_seed=SEED)
+        s.save_json(str(OUTPUT_DIR / "trained_dqn_greedy.json"))
+        results["Trained Shared DQN"] = s
+        print_row("Trained Shared DQN", s.to_dict())
+    else:
+        print(f"  [SKIP] No Shared DQN checkpoint at {dqn_ckpt}")
 
     print(f"{'-'*130}")
     print(f"\nNOTE: {NUM_EPISODES} episodes is insufficient for statistical conclusions.")

@@ -1,0 +1,27 @@
+# Shared DQN Training Configuration
+
+env:
+  scenario: "simulation/scenarios/examples/fire_small.json"
+  max_steps: 50
+
+training:
+  num_episodes: 10
+  learning_rate: 1.0e-3
+  gamma: 0.99
+  buffer_capacity: 100000
+  batch_size: 64
+  learning_starts: 10
+  train_frequency: 1
+  target_update_frequency: 10
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay: 0.995
+  device: "cpu" # Change to "cuda" if available
+
+evaluation:
+  eval_interval: 10
+  eval_episodes: 2
+
+logging:
+  save_dir: "./checkpoints"
+  save_interval: 10

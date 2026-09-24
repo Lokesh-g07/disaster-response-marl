@@ -1,4 +1,42 @@
-"""PettingZoo ParallelEnv environment for multi-agent disaster response."""
+"""PettingZoo ParallelEnv environment for multi-agent disaster response.
+
+Observation Design (v2 -- Coordination-Aware)
+----------------------------------------------
+Each agent receives a Dict observation with two components:
+
+  "visual":  np.ndarray of shape (5, 5, 4)
+      Local 5x5 egocentric grid window with 4 binary channels:
+        Channel 0: Fire
+        Channel 1: Survivor
+        Channel 2: Wall / Out-of-bounds
+        Channel 3: Exit
+      Unchanged from v1.
+
+  "vector":  np.ndarray of shape (coord_vector_dim,)
+      Coordination vector providing information needed for multi-agent
+      cooperation while remaining compatible with decentralized execution.
+
+      Layout (for max_agents=N):
+        [0:2]   = own position (row/H, col/W), normalized to [0, 1]
+        [2:2+2*(N-1)] = relative teammate positions (dr/H, dc/W) per teammate
+                        normalized to [-1, 1].  Padded with 0 if fewer teammates.
+        [-3:]   = nearest survivor info: (dr/H, dc/W, distance/(H+W))
+                  All zero if no survivors remain.
+
+      Total dim = 2 + 2*(max_agents-1) + 3
+
+Information Fairness Note
+--------------------------
+The coordination vector uses ONLY information available to the specific agent
+at execution time:
+  - Own position: the agent knows where it is
+  - Teammate positions: communication/shared radio assumption (standard in MARL)
+  - Nearest survivor: derived from the agent's knowledge of the grid state
+
+This does NOT expose the full global grid to the actor.
+The centralized critic still receives the full global state (H, W, 5) during
+CTDE training only.
+"""
 
 import copy
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -30,7 +68,7 @@ class DisasterEnv(ParallelEnv):
 
     metadata = {
         "render_modes": ["ansi", "human"],
-        "name": "disaster_env_v1",
+        "name": "disaster_env_v2",
     }
 
     def __init__(
@@ -38,6 +76,7 @@ class DisasterEnv(ParallelEnv):
         scenario: Union[str, Dict[str, Any]],
         render_mode: Optional[str] = None,
         reward_config: Optional[Dict[str, float]] = None,
+        max_agents: Optional[int] = None,
     ):
         """
         Initialize the multi-agent disaster environment from a scenario.
@@ -46,6 +85,10 @@ class DisasterEnv(ParallelEnv):
             scenario: Scenario configuration dictionary or file path.
             render_mode: Optional render mode ('ansi' or 'human').
             reward_config: Optional dictionary overriding default reward weights.
+            max_agents: Maximum number of agents to dimension the coordination
+                        vector.  Defaults to len(scenario['agents']).  Set higher
+                        if you plan to evaluate on scenarios with more agents
+                        without retraining.
         """
         super().__init__()
         self.raw_scenario = load_scenario(scenario)
@@ -93,16 +136,27 @@ class DisasterEnv(ParallelEnv):
             agent: spaces.Discrete(5) for agent in self.possible_agents
         }
 
-        # Local Egocentric Observation Space: 5x5 grid with 4 binary channels
-        # Channel 0: Fire, 1: Survivor, 2: Wall/OOB, 3: Exit
-        self.obs_shape = (5, 5, 4)
+        # ----- Observation Space (v2: Dict with visual + coordination vector) -----
+        self.obs_shape = (5, 5, 4)  # Local egocentric visual grid
+
+        # Coordination vector dimensioning
+        self.max_agents = max_agents if max_agents is not None else len(self.possible_agents)
+        # dim = 2 (own pos) + 2*(max_agents-1) (teammate relative) + 3 (nearest survivor)
+        self.coord_vector_dim = 2 + 2 * (self.max_agents - 1) + 3
+
         self.observation_spaces: Dict[str, spaces.Space] = {
-            agent: spaces.Box(
-                low=0.0,
-                high=1.0,
-                shape=self.obs_shape,
-                dtype=np.float32,
-            )
+            agent: spaces.Dict({
+                "visual": spaces.Box(
+                    low=0.0, high=1.0,
+                    shape=self.obs_shape,
+                    dtype=np.float32,
+                ),
+                "vector": spaces.Box(
+                    low=-1.0, high=1.0,
+                    shape=(self.coord_vector_dim,),
+                    dtype=np.float32,
+                ),
+            })
             for agent in self.possible_agents
         }
 
@@ -122,7 +176,7 @@ class DisasterEnv(ParallelEnv):
         self,
         seed: Optional[int] = None,
         options: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[Dict[str, np.ndarray], Dict[str, Dict[str, Any]]]:
+    ) -> Tuple[Dict[str, Dict[str, np.ndarray]], Dict[str, Dict[str, Any]]]:
         """
         Reset the environment to initial scenario configuration.
 
@@ -132,6 +186,7 @@ class DisasterEnv(ParallelEnv):
 
         Returns:
             Tuple of (observations_dict, infos_dict).
+            Each observation is a Dict with "visual" and "vector" keys.
         """
         self.grid.reset()
         self.hazard_simulator.set_seed(seed)
@@ -168,7 +223,7 @@ class DisasterEnv(ParallelEnv):
         self,
         actions: Dict[str, int],
     ) -> Tuple[
-        Dict[str, np.ndarray],
+        Dict[str, Dict[str, np.ndarray]],
         Dict[str, float],
         Dict[str, bool],
         Dict[str, bool],
@@ -257,13 +312,25 @@ class DisasterEnv(ParallelEnv):
 
         return observations, rewards, terminations, truncations, infos
 
-    def _get_observation(self, agent_id: str) -> np.ndarray:
+    def _get_observation(self, agent_id: str) -> Dict[str, np.ndarray]:
+        """
+        Generate observation dict for an agent containing:
+          "visual": 5x5 egocentric local grid with 4 binary channels
+          "vector": coordination vector with position, teammate, and target info
+        """
+        visual = self._get_visual_observation(agent_id)
+        vector = self._get_coordination_vector(agent_id)
+        return {"visual": visual, "vector": vector}
+
+    def _get_visual_observation(self, agent_id: str) -> np.ndarray:
         """
         Generate 5x5 egocentric local observation for an agent with 4 binary channels:
         Channel 0: Fire
         Channel 1: Survivor
         Channel 2: Wall / Out-of-bounds
         Channel 3: Exit
+
+        Unchanged from v1.
         """
         observation = np.zeros(self.obs_shape, dtype=np.float32)
         agent = self._agent_instances[agent_id]
@@ -291,6 +358,74 @@ class DisasterEnv(ParallelEnv):
 
         return observation
 
+    def _get_coordination_vector(self, agent_id: str) -> np.ndarray:
+        """
+        Build the coordination vector for one agent.
+
+        Layout (for max_agents = N):
+          [0:2]                = own position (row/H, col/W), normalized [0, 1]
+          [2 : 2+2*(N-1)]     = relative teammate positions (dr/H, dc/W)
+                                 normalized [-1, 1], zero-padded if fewer
+          [-3:]                = nearest survivor info (dr/H, dc/W, dist/(H+W))
+                                 all zero if no survivors remain
+
+        Normalization:
+          - Position coords: divided by (H-1) or (W-1), clamped to [0, 1]
+          - Relative coords: divided by H or W, clamped to [-1, 1]
+          - Distance: Manhattan distance / (H + W), clamped to [0, 1]
+
+        Handles edge cases:
+          - Grid dimension = 1 (avoids division by zero)
+          - No teammates (padded with 0)
+          - No survivors (target section = 0)
+          - Terminal states (agent may have been removed)
+        """
+        vec = np.zeros(self.coord_vector_dim, dtype=np.float32)
+        agent = self._agent_instances[agent_id]
+        ar, ac = agent.position
+
+        # Safe denominators (avoid div by zero for 1-cell grids)
+        h_norm = max(self.height - 1, 1)
+        w_norm = max(self.width - 1, 1)
+
+        # --- A. Own position [0:2] ---
+        vec[0] = ar / h_norm
+        vec[1] = ac / w_norm
+
+        # --- B. Teammate relative positions [2 : 2+2*(max_agents-1)] ---
+        teammate_idx = 0
+        for other_id in self.possible_agents:
+            if other_id == agent_id:
+                continue
+            if teammate_idx >= self.max_agents - 1:
+                break  # Respect max_agents padding limit
+            other_agent = self._agent_instances[other_id]
+            or_, oc = other_agent.position
+            offset = 2 + 2 * teammate_idx
+            vec[offset]     = np.clip((or_ - ar) / self.height, -1.0, 1.0)
+            vec[offset + 1] = np.clip((oc - ac) / self.width, -1.0, 1.0)
+            teammate_idx += 1
+        # Remaining teammate slots stay 0 (zero-padded)
+
+        # --- C. Nearest survivor info [-3:] ---
+        survivor_cells = self.grid.get_survivor_cells()
+        target_offset = self.coord_vector_dim - 3  # Start of target section
+
+        if len(survivor_cells) > 0:
+            # Compute Manhattan distances to all survivors
+            diffs = survivor_cells - np.array([ar, ac])
+            distances = np.abs(diffs).sum(axis=1)
+            nearest_idx = int(np.argmin(distances))
+            sr, sc = int(survivor_cells[nearest_idx, 0]), int(survivor_cells[nearest_idx, 1])
+            dist_norm = max(self.height + self.width, 1)
+
+            vec[target_offset]     = np.clip((sr - ar) / self.height, -1.0, 1.0)
+            vec[target_offset + 1] = np.clip((sc - ac) / self.width, -1.0, 1.0)
+            vec[target_offset + 2] = np.clip(distances[nearest_idx] / dist_norm, 0.0, 1.0)
+        # else: stays 0 (no survivors)
+
+        return vec
+
     def _get_info(self, agent_id: str) -> Dict[str, Any]:
         """Compile diagnostic metrics and state info for an agent."""
         agent = self._agent_instances[agent_id]
@@ -310,6 +445,9 @@ class DisasterEnv(ParallelEnv):
         """
         Return centralized global state for Centralized Training (CTDE Critic).
         Shape: (height, width, 5) representing [WALL, FIRE, SURVIVOR, EXIT, AGENTS].
+
+        This is used ONLY by the centralized critic during training.
+        The actor NEVER receives this at execution time (CTDE compliance).
         """
         global_state = np.zeros((self.height, self.width, 5), dtype=np.float32)
 

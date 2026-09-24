@@ -1,0 +1,381 @@
+{
+  "summary": {
+    "scenario_name": "fire_small",
+    "num_episodes": 10,
+    "mean_total_reward": -12.589875208073181,
+    "std_total_reward": 16.146083116347445,
+    "mean_survivors_rescued": 1,
+    "std_survivors_rescued": 0.0,
+    "mean_evacuation_rate": 0.2,
+    "evacuation_success_rate": 0.0,
+    "mean_episode_length": 11.8,
+    "std_episode_length": 2.7406406388125952,
+    "mean_casualties": 4,
+    "mean_fire_exposures": 4,
+    "mean_survivors_remaining": 0,
+    "mean_inference_time_ms": 12.42856994504109,
+    "mean_average_rescue_step": 1
+  },
+  "episodes": [
+    {
+      "episode_index": 0,
+      "seed": 42,
+      "scenario_name": "fire_small",
+      "total_reward": -1.5498752080731806,
+      "survivors_rescued": 1,
+      "survivors_initial": 5,
+      "survivors_remaining": 0,
+      "casualties": 4,
+      "episode_length": 8,
+      "evacuation_success": false,
+      "rescue_timesteps": [
+        1
+      ],
+      "fire_exposures": 2,
+      "fire_cells_final": 60,
+      "per_agent_reward": {
+        "rescue_0": -1.1,
+        "rescue_1": -0.4498752080731805
+      },
+      "per_agent_rescues": {
+        "rescue_0": 0,
+        "rescue_1": 1
+      },
+      "per_agent_steps": {
+        "rescue_0": 1,
+        "rescue_1": 8
+      },
+      "per_agent_fire_exposures": {
+        "rescue_0": 0,
+        "rescue_1": 2
+      },
+      "inference_time_ms": 8.688299916684628,
+      "evacuation_rate": 0.2,
+      "average_rescue_step": 1
+    },
+    {
+      "episode_index": 1,
+      "seed": 43,
+      "scenario_name": "fire_small",
+      "total_reward": -2.449875208073184,
+      "survivors_rescued": 1,
+      "survivors_initial": 5,
+      "survivors_remaining": 0,
+      "casualties": 4,
+      "episode_length": 11,
+      "evacuation_success": false,
+      "rescue_timesteps": [
+        1
+      ],
+      "fire_exposures": 2,
+      "fire_cells_final": 57,
+      "per_agent_reward": {
+        "rescue_0": -11.55,
+        "rescue_1": 9.100124791926817
+      },
+      "per_agent_rescues": {
+        "rescue_0": 0,
+        "rescue_1": 1
+      },
+      "per_agent_steps": {
+        "rescue_0": 1,
+        "rescue_1": 8
+      },
+      "per_agent_fire_exposures": {
+        "rescue_0": 2,
+        "rescue_1": 0
+      },
+      "inference_time_ms": 10.657200124114752,
+      "evacuation_rate": 0.2,
+      "average_rescue_step": 1
+    },
+    {
+      "episode_index": 2,
+      "seed": 44,
+      "scenario_name": "fire_small",
+      "total_reward": 2.9501247919268216,
+      "survivors_rescued": 1,
+      "survivors_initial": 5,
+      "survivors_remaining": 0,
+      "casualties": 4,
+      "episode_length": 10,
+      "evacuation_success": false,
+      "rescue_timesteps": [
+        1
+      ],
+      "fire_exposures": 1,
+      "fire_cells_final": 69,
+      "per_agent_reward": {
+        "rescue_0": -1.2999999999999998,
+        "rescue_1": 4.2501247919268215
+      },
+      "per_agent_rescues": {
+        "rescue_0": 0,
+        "rescue_1": 1
+      },
+      "per_agent_steps": {
+        "rescue_0": 2,
+        "rescue_1": 8
+      },
+      "per_agent_fire_exposures": {
+        "rescue_0": 0,
+        "rescue_1": 1
+      },
+      "inference_time_ms": 9.831600007601082,
+      "evacuation_rate": 0.2,
+      "average_rescue_step": 1
+    },
+    {
+      "episode_index": 3,
+      "seed": 45,
+      "scenario_name": "fire_small",
+      "total_reward": 2.9501247919268208,
+      "survivors_rescued": 1,
+      "survivors_initial": 5,
+      "survivors_remaining": 0,
+      "casualties": 4,
+      "episode_length": 11,
+      "evacuation_success": false,
+      "rescue_timesteps": [
+        1
+      ],
+      "fire_exposures": 1,
+      "fire_cells_final": 60,
+      "per_agent_reward": {
+        "rescue_0": -1.1500000000000004,
+        "rescue_1": 4.100124791926821
+      },
+      "per_agent_rescues": {
+        "rescue_0": 0,
+        "rescue_1": 1
+      },
+      "per_agent_steps": {
+        "rescue_0": 5,
+        "rescue_1": 8
+      },
+      "per_agent_fire_exposures": {
+        "rescue_0": 0,
+        "rescue_1": 1
+      },
+      "inference_time_ms": 10.39780001156032,
+      "evacuation_rate": 0.2,
+      "average_rescue_step": 1
+    },
+    {
+      "episode_index": 4,
+      "seed": 46,
+      "scenario_name": "fire_small",
+      "total_reward": -27.449875208073177,
+      "survivors_rescued": 1,
+      "survivors_initial": 5,
+      "survivors_remaining": 0,
+      "casualties": 4,
+      "episode_length": 11,
+      "evacuation_success": false,
+      "rescue_timesteps": [
+        1
+      ],
+      "fire_exposures": 7,
+      "fire_cells_final": 74,
+      "per_agent_reward": {
+        "rescue_0": -1.5499999999999998,
+        "rescue_1": -25.899875208073176
+      },
+      "per_agent_rescues": {
+        "rescue_0": 0,
+        "rescue_1": 1
+      },
+      "per_agent_steps": {
+        "rescue_0": 1,
+        "rescue_1": 8
+      },
+      "per_agent_fire_exposures": {
+        "rescue_0": 0,
+        "rescue_1": 7
+      },
+      "inference_time_ms": 10.587699827738106,
+      "evacuation_rate": 0.2,
+      "average_rescue_step": 1
+    },
+    {
+      "episode_index": 5,
+      "seed": 47,
+      "scenario_name": "fire_small",
+      "total_reward": -33.34987520807318,
+      "survivors_rescued": 1,
+      "survivors_initial": 5,
+      "survivors_remaining": 0,
+      "casualties": 4,
+      "episode_length": 14,
+      "evacuation_success": false,
+      "rescue_timesteps": [
+        1
+      ],
+      "fire_exposures": 8,
+      "fire_cells_final": 75,
+      "per_agent_reward": {
+        "rescue_0": -1.9999999999999996,
+        "rescue_1": -31.34987520807318
+      },
+      "per_agent_rescues": {
+        "rescue_0": 0,
+        "rescue_1": 1
+      },
+      "per_agent_steps": {
+        "rescue_0": 1,
+        "rescue_1": 8
+      },
+      "per_agent_fire_exposures": {
+        "rescue_0": 0,
+        "rescue_1": 8
+      },
+      "inference_time_ms": 13.297599973157048,
+      "evacuation_rate": 0.2,
+      "average_rescue_step": 1
+    },
+    {
+      "episode_index": 6,
+      "seed": 48,
+      "scenario_name": "fire_small",
+      "total_reward": -17.44987520807318,
+      "survivors_rescued": 1,
+      "survivors_initial": 5,
+      "survivors_remaining": 0,
+      "casualties": 4,
+      "episode_length": 12,
+      "evacuation_success": false,
+      "rescue_timesteps": [
+        1
+      ],
+      "fire_exposures": 5,
+      "fire_cells_final": 72,
+      "per_agent_reward": {
+        "rescue_0": -16.4,
+        "rescue_1": -1.0498752080731837
+      },
+      "per_agent_rescues": {
+        "rescue_0": 0,
+        "rescue_1": 1
+      },
+      "per_agent_steps": {
+        "rescue_0": 4,
+        "rescue_1": 8
+      },
+      "per_agent_fire_exposures": {
+        "rescue_0": 3,
+        "rescue_1": 2
+      },
+      "inference_time_ms": 16.70809998176992,
+      "evacuation_rate": 0.2,
+      "average_rescue_step": 1
+    },
+    {
+      "episode_index": 7,
+      "seed": 49,
+      "scenario_name": "fire_small",
+      "total_reward": 2.9501247919268163,
+      "survivors_rescued": 1,
+      "survivors_initial": 5,
+      "survivors_remaining": 0,
+      "casualties": 4,
+      "episode_length": 10,
+      "evacuation_success": false,
+      "rescue_timesteps": [
+        1
+      ],
+      "fire_exposures": 1,
+      "fire_cells_final": 62,
+      "per_agent_reward": {
+        "rescue_0": -6.300000000000001,
+        "rescue_1": 9.250124791926817
+      },
+      "per_agent_rescues": {
+        "rescue_0": 0,
+        "rescue_1": 1
+      },
+      "per_agent_steps": {
+        "rescue_0": 2,
+        "rescue_1": 8
+      },
+      "per_agent_fire_exposures": {
+        "rescue_0": 1,
+        "rescue_1": 0
+      },
+      "inference_time_ms": 10.708199813961983,
+      "evacuation_rate": 0.2,
+      "average_rescue_step": 1
+    },
+    {
+      "episode_index": 8,
+      "seed": 50,
+      "scenario_name": "fire_small",
+      "total_reward": -13.049875208073184,
+      "survivors_rescued": 1,
+      "survivors_initial": 5,
+      "survivors_remaining": 0,
+      "casualties": 4,
+      "episode_length": 13,
+      "evacuation_success": false,
+      "rescue_timesteps": [
+        1
+      ],
+      "fire_exposures": 4,
+      "fire_cells_final": 76,
+      "per_agent_reward": {
+        "rescue_0": -1.8499999999999996,
+        "rescue_1": -11.199875208073184
+      },
+      "per_agent_rescues": {
+        "rescue_0": 0,
+        "rescue_1": 1
+      },
+      "per_agent_steps": {
+        "rescue_0": 1,
+        "rescue_1": 8
+      },
+      "per_agent_fire_exposures": {
+        "rescue_0": 0,
+        "rescue_1": 4
+      },
+      "inference_time_ms": 14.44079983048141,
+      "evacuation_rate": 0.2,
+      "average_rescue_step": 1
+    },
+    {
+      "episode_index": 9,
+      "seed": 51,
+      "scenario_name": "fire_small",
+      "total_reward": -39.44987520807318,
+      "survivors_rescued": 1,
+      "survivors_initial": 5,
+      "survivors_remaining": 0,
+      "casualties": 4,
+      "episode_length": 18,
+      "evacuation_success": false,
+      "rescue_timesteps": [
+        1
+      ],
+      "fire_exposures": 9,
+      "fire_cells_final": 87,
+      "per_agent_reward": {
+        "rescue_0": -7.5,
+        "rescue_1": -31.94987520807318
+      },
+      "per_agent_rescues": {
+        "rescue_0": 0,
+        "rescue_1": 1
+      },
+      "per_agent_steps": {
+        "rescue_0": 2,
+        "rescue_1": 8
+      },
+      "per_agent_fire_exposures": {
+        "rescue_0": 1,
+        "rescue_1": 8
+      },
+      "inference_time_ms": 18.968399963341653,
+      "evacuation_rate": 0.2,
+      "average_rescue_step": 1
+    }
+  ]
+}

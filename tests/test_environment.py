@@ -21,7 +21,8 @@ def test_environment_initialization(sample_scenario):
     for agent in env.possible_agents:
         obs_space = env.observation_space(agent)
         act_space = env.action_space(agent)
-        assert obs_space.shape == (5, 5, 4)
+        assert obs_space.spaces["visual"].shape == (5, 5, 4)
+        assert "vector" in obs_space.spaces
         assert act_space.n == 5
 
 
@@ -34,7 +35,8 @@ def test_environment_reset(sample_scenario):
     assert len(infos) == 2
 
     for agent in env.agents:
-        assert observations[agent].shape == (5, 5, 4)
+        assert observations[agent]["visual"].shape == (5, 5, 4)
+        assert "vector" in observations[agent]
         assert env.observation_space(agent).contains(observations[agent])
         assert "survivors_remaining" in infos[agent]
         assert infos[agent]["survivors_remaining"] == 5

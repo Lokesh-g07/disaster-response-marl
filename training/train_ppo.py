@@ -131,13 +131,15 @@ def main():
             done_flag = all(terminations.get(a, True) or truncations.get(a, True)
                             for a in env.possible_agents)
 
-            # Insert into each agent's buffer
+            # Insert into each agent's buffer (PPO uses only visual obs)
             for aid in env.possible_agents:
                 if aid in obs_dict:
                     ppo_agent = policy.agents[aid]
                     if ppo_agent.buffer.ptr < ppo_agent.buffer.num_steps:
+                        raw_obs = obs_dict[aid]
+                        visual_obs = raw_obs["visual"] if isinstance(raw_obs, dict) else raw_obs
                         ppo_agent.buffer.insert(
-                            obs=obs_dict[aid],
+                            obs=visual_obs,
                             action=action_dict.get(aid, 0),
                             log_prob=log_probs.get(aid, 0.0),
                             reward=rewards_dict.get(aid, 0.0),

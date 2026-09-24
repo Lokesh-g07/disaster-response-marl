@@ -1,6 +1,8 @@
 """
 Evaluator: runs N episodes against a policy and collects EpisodeMetrics.
 
+v2: Updated for Dict observations {"visual": ..., "vector": ...}.
+
 Design principles:
 - Does NOT modify the DisasterEnv or MAPPO implementations.
 - Depends only on the public APIs already established in Phase 1 & 2:
@@ -12,6 +14,7 @@ Design principles:
     RescueAgent.steps_taken, MAPPO.actor (used for deterministic greedy mode).
 - Policy interface is intentionally decoupled: any callable matching
     policy(obs_dict, env) -> action_dict  can be evaluated.
+  obs_dict values are now Dict[str, np.ndarray] with "visual" and "vector" keys.
 """
 
 from __future__ import annotations
@@ -30,23 +33,25 @@ from .metrics import EpisodeMetrics, EvaluationSummary
 # ---------------------------------------------------------------------------
 # Policy type alias
 # ---------------------------------------------------------------------------
-PolicyFn = Callable[[Dict[str, np.ndarray], DisasterEnv], Dict[str, int]]
+PolicyFn = Callable[[Dict[str, Any], DisasterEnv], Dict[str, int]]
 
 
 # ---------------------------------------------------------------------------
 # Built-in policy factories
 # ---------------------------------------------------------------------------
 
-def random_policy(obs_dict: Dict[str, np.ndarray], env: DisasterEnv) -> Dict[str, int]:
-    """Uniformly random action selection — used as a reference baseline."""
+def random_policy(obs_dict: Dict[str, Any], env: DisasterEnv) -> Dict[str, int]:
+    """Uniformly random action selection -- used as a reference baseline."""
     return {agent: env.action_space(agent).sample() for agent in env.agents}
 
 
 def make_mappo_greedy_policy(mappo_agent) -> PolicyFn:
     """
     Return a deterministic (greedy) policy from a loaded MAPPO agent.
-    Uses argmax over action logits rather than sampling — suitable for
+    Uses argmax over action logits rather than sampling -- suitable for
     deterministic evaluation mode.
+
+    Handles v2 Dict observations: extracts "visual" and "vector" from obs_dict.
 
     Args:
         mappo_agent: An initialised and weight-loaded MAPPO instance.
@@ -55,14 +60,16 @@ def make_mappo_greedy_policy(mappo_agent) -> PolicyFn:
         A callable policy function.
     """
 
-    def _policy(obs_dict: Dict[str, np.ndarray], env: DisasterEnv) -> Dict[str, int]:
+    def _policy(obs_dict: Dict[str, Any], env: DisasterEnv) -> Dict[str, int]:
         active_agents = env.agents
-        obs_list = [obs_dict[a] for a in active_agents]
-        obs_batch = np.stack(obs_list)
-        obs_tensor = torch.tensor(obs_batch, dtype=torch.float32).to(mappo_agent.device)
+        visual_list = [obs_dict[a]["visual"] for a in active_agents]
+        vector_list = [obs_dict[a]["vector"] for a in active_agents]
+
+        visual_tensor = torch.tensor(np.stack(visual_list), dtype=torch.float32).to(mappo_agent.device)
+        vector_tensor = torch.tensor(np.stack(vector_list), dtype=torch.float32).to(mappo_agent.device)
 
         with torch.no_grad():
-            dist = mappo_agent.actor(obs_tensor)
+            dist = mappo_agent.actor(visual_tensor, vector_tensor)
             # Greedy (deterministic): take the mode of the distribution
             actions = dist.logits.argmax(dim=-1).cpu().numpy()
 
@@ -74,17 +81,19 @@ def make_mappo_greedy_policy(mappo_agent) -> PolicyFn:
 def make_mappo_stochastic_policy(mappo_agent) -> PolicyFn:
     """
     Return a stochastic sampling policy from a loaded MAPPO agent.
-    Samples from the categorical distribution — closer to training behaviour.
+    Samples from the categorical distribution -- closer to training behaviour.
     """
 
-    def _policy(obs_dict: Dict[str, np.ndarray], env: DisasterEnv) -> Dict[str, int]:
+    def _policy(obs_dict: Dict[str, Any], env: DisasterEnv) -> Dict[str, int]:
         active_agents = env.agents
-        obs_list = [obs_dict[a] for a in active_agents]
-        obs_batch = np.stack(obs_list)
-        obs_tensor = torch.tensor(obs_batch, dtype=torch.float32).to(mappo_agent.device)
+        visual_list = [obs_dict[a]["visual"] for a in active_agents]
+        vector_list = [obs_dict[a]["vector"] for a in active_agents]
+
+        visual_tensor = torch.tensor(np.stack(visual_list), dtype=torch.float32).to(mappo_agent.device)
+        vector_tensor = torch.tensor(np.stack(vector_list), dtype=torch.float32).to(mappo_agent.device)
 
         with torch.no_grad():
-            dist = mappo_agent.actor(obs_tensor)
+            dist = mappo_agent.actor(visual_tensor, vector_tensor)
             actions = dist.sample().cpu().numpy()
 
         return {agent: int(actions[i]) for i, agent in enumerate(active_agents)}
@@ -187,16 +196,17 @@ class Evaluator:
         """
         from rl.mappo import MAPPO
 
-        # Build a temporary env to infer shapes — immediately discarded
+        # Build a temporary env to infer shapes -- immediately discarded
         _tmp_env = DisasterEnv(self.scenario)
-        obs_shape = _tmp_env.observation_space(_tmp_env.possible_agents[0]).shape
         action_dim = _tmp_env.action_space(_tmp_env.possible_agents[0]).n
         global_state_shape = (_tmp_env.height, _tmp_env.width, 5)
+        coord_vector_dim = _tmp_env.coord_vector_dim
 
         agent = MAPPO(
             obs_shape=(4, 5, 5),          # channels-first convention used by ActorNetwork
             global_state_shape=global_state_shape,
             action_dim=action_dim,
+            coord_vector_dim=coord_vector_dim,
             device=self.device,
         )
         agent.load(checkpoint_path)
@@ -266,11 +276,8 @@ class Evaluator:
                 per_agent_reward[agent_id] += r
 
             # Track fire exposures (if agent is on fire cell after step)
-            # infos uses the first active agent's key; we use per-agent info
             for agent_id in env.possible_agents:
                 if agent_id in infos:
-                    # We infer fire exposure from: agent on fire cell = fire penalty applied
-                    # Direct source-of-truth: check grid cell for the agent's position
                     agent_inst = env._agent_instances[agent_id]
                     from simulation.engine.grid import FIRE
                     if env.grid.grid[agent_inst.position[0], agent_inst.position[1]] == FIRE:

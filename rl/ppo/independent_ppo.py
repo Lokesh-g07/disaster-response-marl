@@ -17,40 +17,29 @@ Independent PPO (this file):
   - Training: fully independent per-agent
   - Execution: each agent uses its own actor independently
 
-Information fairness
---------------------
-Both MAPPO actor and PPO actor receive:
-  obs: np.ndarray of shape (5, 5, 4) -- local egocentric 5x5 window
-    Channel 0: Fire
-    Channel 1: Survivor
-    Channel 2: Wall / Out-of-bounds
-    Channel 3: Exit
+Information fairness (v2)
+------------------------
+The DisasterEnv now returns Dict observations:
+  {"visual": (5,5,4), "vector": (coord_dim,)}
 
-MAPPO critic additionally receives:
-  global_state: np.ndarray of shape (H, W, 5) -- full grid truth
+MAPPO v2 actor receives BOTH visual + coordination vector.
+Independent PPO deliberately receives ONLY the visual component.
 
-PPO critic receives:
-  local obs ONLY -- same (5, 5, 4) window as the actor
+MAPPO additionally has:
+  - Coordination vector (own position, teammate relative positions, nearest target)
+  - Centralized critic with global state (H, W, 5) during training
 
-This means MAPPO has a training information advantage (centralized critic).
-Both policies are EQUALLY informed at inference time (only local obs used for actions).
+PPO has:
+  - Visual obs only (5,5,4) for both actor and critic
+  - No coordination vector
+  - No global state
 
-Task / Zone context
---------------------
-The local observation (5x5x4) does NOT encode explicit task/zone assignments.
-Any zone context that rule-based baselines use via privileged env.grid access
-is NOT available to PPO -- this is intentional and preserves information fairness.
-PPO must learn survivor-seeking behavior implicitly from reward signal alone,
-just like MAPPO does.
+This makes PPO the weakest learned baseline and establishes a clear hierarchy:
+  Rule-based baselines > MAPPO (coordination-aware) > Independent PPO (visual-only)
 
-The conceptual pipeline:
-  agent -> local obs -> PPO actor -> action -> movement -> rescue
-
-Task/zone context is NOT injected into the observation because:
-  1. MAPPO does not receive it either.
-  2. Adding it would break the information-equivalence between PPO and MAPPO.
-  3. The rule-based baselines are labeled as privileged-state heuristics
-     precisely because they CAN use this information.
+PPO extracts only obs["visual"] from the Dict observations and discards
+the coordination vector.  This is intentional to preserve the
+architectural comparison.
 """
 
 from __future__ import annotations
@@ -557,17 +546,21 @@ class IndependentPPOPolicy:
 
     def __call__(
         self,
-        obs_dict: Dict[str, np.ndarray],
+        obs_dict,
         env,
     ) -> Dict[str, int]:
         """
         Deterministic (greedy) inference for evaluation.
         Each agent independently selects the argmax action.
+        Extracts only the visual component from Dict observations.
         """
         actions = {}
         for agent_id in env.agents:
             if agent_id in obs_dict and agent_id in self.agents:
                 obs = obs_dict[agent_id]
+                # Handle Dict observations from DisasterEnv v2
+                if isinstance(obs, dict):
+                    obs = obs["visual"]
                 actions[agent_id] = self.agents[agent_id].get_deterministic_action(obs)
         return actions
 
@@ -577,11 +570,12 @@ class IndependentPPOPolicy:
 
     def get_actions_train(
         self,
-        obs_dict: Dict[str, np.ndarray],
+        obs_dict,
         active_agents: List[str],
     ) -> Tuple[Dict[str, int], Dict[str, float], Dict[str, float]]:
         """
         Sample stochastic actions for training step.
+        Extracts only visual from Dict observations.
 
         Returns:
             actions: agent_id -> action int
@@ -591,21 +585,27 @@ class IndependentPPOPolicy:
         actions, log_probs, values = {}, {}, {}
         for aid in active_agents:
             if aid in self.agents and aid in obs_dict:
-                a, lp, v = self.agents[aid].get_action(obs_dict[aid])
+                obs = obs_dict[aid]
+                if isinstance(obs, dict):
+                    obs = obs["visual"]
+                a, lp, v = self.agents[aid].get_action(obs)
                 actions[aid], log_probs[aid], values[aid] = a, lp, v
         return actions, log_probs, values
 
     def get_values_for(
         self,
-        obs_dict: Dict[str, np.ndarray],
+        obs_dict,
         agent_ids: List[str],
     ) -> Dict[str, float]:
-        """Bootstrap values for specified agents."""
-        return {
-            aid: self.agents[aid].get_value(obs_dict[aid])
-            for aid in agent_ids
-            if aid in self.agents and aid in obs_dict
-        }
+        """Bootstrap values for specified agents. Extracts visual from Dict obs."""
+        result = {}
+        for aid in agent_ids:
+            if aid in self.agents and aid in obs_dict:
+                obs = obs_dict[aid]
+                if isinstance(obs, dict):
+                    obs = obs["visual"]
+                result[aid] = self.agents[aid].get_value(obs)
+        return result
 
     def update_all(self) -> Dict[str, Tuple[float, float, float]]:
         """
@@ -615,14 +615,17 @@ class IndependentPPOPolicy:
 
     def compute_all_gae(
         self,
-        next_obs_dict: Dict[str, np.ndarray],
+        next_obs_dict,
         next_done: float,
         gamma: float = 0.99,
         gae_lambda: float = 0.95,
     ) -> None:
-        """Compute returns/advantages for all agent buffers."""
+        """Compute returns/advantages for all agent buffers. Extracts visual from Dict obs."""
         for aid, ppo in self.agents.items():
-            nv = ppo.get_value(next_obs_dict.get(aid, np.zeros((5, 5, 4))))
+            raw = next_obs_dict.get(aid, np.zeros((5, 5, 4)))
+            if isinstance(raw, dict):
+                raw = raw.get("visual", np.zeros((5, 5, 4)))
+            nv = ppo.get_value(raw)
             ppo.buffer.compute_returns_and_advantages(nv, next_done, gamma, gae_lambda)
 
     def clear_all_buffers(self) -> None:

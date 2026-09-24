@@ -402,8 +402,10 @@ class TestIndependentPPOPolicy:
             for aid in env.possible_agents:
                 ppo_agent = policy.agents[aid]
                 if ppo_agent.buffer.ptr < ppo_agent.buffer.num_steps and aid in obs:
+                    raw_obs = obs[aid]
+                    visual_obs = raw_obs["visual"] if isinstance(raw_obs, dict) else raw_obs
                     ppo_agent.buffer.insert(
-                        obs[aid], acts.get(aid, 0), lps.get(aid, 0.0),
+                        visual_obs, acts.get(aid, 0), lps.get(aid, 0.0),
                         0.5, vals.get(aid, 0.0), 0.0
                     )
             obs, _, _, _, _ = env.step({a: acts.get(a, 0) for a in env.agents})
