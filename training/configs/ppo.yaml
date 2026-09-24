@@ -1,0 +1,37 @@
+# Independent PPO Training Configuration
+# ----------------------------------------
+# All hyperparameters configurable; no hard-coded values in training script.
+#
+# Key differences from MAPPO (default.yaml):
+#   - num_mini_batch: 4 (vs 2 for MAPPO) -- more gradient steps per rollout
+#   - num_steps: 64 -- per-agent rollout horizon
+#   - No global_state_shape (PPO critic uses local obs only)
+#   - save_dir: checkpoints/ppo (separate from MAPPO checkpoints)
+
+env:
+  scenario: "simulation/scenarios/examples/fire_small.json"
+  max_steps: 50
+
+training:
+  num_episodes: 500         # Number of training episodes (keep small for dev)
+  num_steps: 64             # Per-agent rollout horizon before each update
+  actor_lr: 3.0e-4          # Actor learning rate (matches MAPPO)
+  critic_lr: 1.0e-3         # Critic learning rate (matches MAPPO)
+  gamma: 0.99               # Discount factor (matches MAPPO)
+  gae_lambda: 0.95          # GAE lambda (matches MAPPO)
+  clip_param: 0.2           # PPO clipping epsilon (matches MAPPO)
+  ppo_epoch: 10             # Gradient epochs per rollout (matches MAPPO)
+  num_mini_batch: 4         # Mini-batches per epoch (PPO standard: 4)
+  entropy_coef: 0.01        # Entropy bonus coefficient (matches MAPPO)
+  value_loss_coef: 0.5      # Value loss coefficient (matches MAPPO)
+  max_grad_norm: 0.5        # Gradient clipping norm (matches MAPPO)
+  device: "cpu"             # Device: "cpu" or "cuda"
+
+evaluation:
+  eval_interval: 50         # Evaluate every N episodes
+  eval_episodes: 5          # Episodes per eval block
+
+logging:
+  save_dir: "./checkpoints/ppo"   # Separate from MAPPO checkpoints
+  save_interval: 100              # Checkpoint every N episodes
+  log_interval: 10                # Print stats every N episodes
