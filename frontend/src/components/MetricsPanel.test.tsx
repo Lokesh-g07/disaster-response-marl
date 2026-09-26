@@ -13,9 +13,11 @@ describe('MetricsPanel', () => {
   it('renders metrics when state is provided', () => {
     const mockState: SimulationState = {
       simulation_id: '123',
+      scenario: 'fire_small.json',
+      hazard_type: 'FIRE',
       timestep: 5,
       status: 'RUNNING',
-      grid: { width: 10, height: 10, walls: [], exits: [], fire_cells: [] },
+      grid: { width: 10, height: 10, walls: [], exits: [], hazard_cells: [] },
       agents: [],
       survivors: [],
       metrics: {

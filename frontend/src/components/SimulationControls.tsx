@@ -38,8 +38,8 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   hasActiveSimulation,
 }) => {
   return (
-    <div className="bg-gray-800 p-4 rounded-lg shadow-lg flex flex-col gap-4 text-white w-64 flex-shrink-0 z-10 relative">
-      <h2 className="text-xl font-bold border-b border-gray-700 pb-2">Controls</h2>
+    <div className="bg-gray-800/90 backdrop-blur-md p-5 rounded-xl shadow-2xl border border-gray-700/50 flex flex-col gap-5 text-white w-64 flex-shrink-0 z-10 relative transition-all">
+      <h2 className="text-xl font-black border-b border-gray-700/50 pb-3 tracking-tight">Controls</h2>
       
       <div className="flex flex-col gap-2">
         <label className="text-sm font-semibold text-gray-400">Scenario</label>

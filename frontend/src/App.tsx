@@ -54,26 +54,37 @@ function App() {
   };
 
   return (
-    <div className="w-full h-screen overflow-hidden flex relative bg-gray-900 font-sans">
+    <div className="w-full h-screen overflow-hidden flex relative bg-[#0f172a] font-sans">
       <DisasterScene state={simulationState} />
       
       <div className="absolute top-4 left-4 z-10 flex flex-col gap-4">
-        <div className="bg-gray-800/90 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-gray-700 w-64">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+        <div className="bg-gray-800/90 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-gray-700 w-64 transition-all">
+          <div className="flex justify-between items-center mb-1">
+            <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300 tracking-tight">
               CrisisRL
             </h1>
             <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
-              connectionStatus === 'Connected' || connectionStatus === 'Running' ? 'bg-green-900/50 text-green-400 border border-green-700' :
-              connectionStatus === 'Disconnected' ? 'bg-gray-900/50 text-gray-400 border border-gray-700' :
-              connectionStatus === 'Error' ? 'bg-red-900/50 text-red-400 border border-red-700' :
-              'bg-yellow-900/50 text-yellow-400 border border-yellow-700'
+              connectionStatus === 'Connected' || connectionStatus === 'Running' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+              connectionStatus === 'Disconnected' ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30' :
+              connectionStatus === 'Error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+              'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
             }`}>
               {connectionStatus === 'Running' && <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>}
               {connectionStatus}
             </div>
           </div>
-          <p className="text-gray-400 text-xs mt-1">Multi-Agent Disaster Response</p>
+          <p className="text-gray-400 text-xs font-medium uppercase tracking-widest opacity-80">Multi-Agent Responder</p>
+          
+          {simulationState && (
+            <div className="mt-3 pt-3 border-t border-gray-700/50 flex justify-between items-center">
+              <span className="text-[10px] font-bold text-gray-500 uppercase">Disaster Type</span>
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
+                simulationState.hazard_type === 'FLOOD' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'
+              }`}>
+                {simulationState.hazard_type}
+              </span>
+            </div>
+          )}
         </div>
         
         <SimulationControls 
@@ -105,12 +116,17 @@ function App() {
       <MetricsPanel state={simulationState} />
       
       {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-gray-800/90 backdrop-blur-sm p-3 rounded-lg border border-gray-700 text-xs text-gray-300 flex gap-4">
-        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-[#4299e1]"></div> Agent</div>
-        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#ecc94b]"></div> Survivor</div>
-        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-[#38a169]"></div> Exit</div>
-        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-[#e53e3e]"></div> Fire</div>
-        <div className="flex items-center gap-2"><div className="w-3 h-3 bg-[#4a5568]"></div> Wall</div>
+      <div className="absolute bottom-4 left-4 bg-gray-800/90 backdrop-blur-md px-4 py-3 rounded-xl border border-gray-700/50 text-xs text-gray-300 flex flex-wrap gap-5 shadow-2xl items-center font-medium tracking-wide">
+        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-[#3182ce] shadow-[0_0_8px_rgba(49,130,206,0.6)]"></div> Rescue Agent</div>
+        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#ed8936] shadow-[0_0_8px_rgba(237,137,54,0.6)]"></div> Survivor</div>
+        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-[#38a169] shadow-[0_0_8px_rgba(56,161,105,0.6)]"></div> Evac Zone</div>
+        {(!simulationState || simulationState.hazard_type === 'FIRE') && (
+          <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-[#e53e3e] shadow-[0_0_8px_rgba(229,62,62,0.6)]"></div> Fire Hazard</div>
+        )}
+        {simulationState?.hazard_type === 'FLOOD' && (
+          <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-[#00b5d8] shadow-[0_0_8px_rgba(0,181,216,0.6)]"></div> Flood Hazard</div>
+        )}
+        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-[#1a202c] border border-gray-600"></div> Impassable Structure</div>
       </div>
     </div>
   );

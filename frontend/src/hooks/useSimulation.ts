@@ -3,7 +3,7 @@ import type { SimulationState, GridState, AgentState, SurvivorState } from '../t
 import { createSimulation } from '../api/simulations';
 import { SimulationWebSocket } from '../api/websocket';
 
-const mapBackendResponse = (simId: string, data: any): SimulationState => {
+const mapBackendResponse = (simId: string, data: any, scenario: string): SimulationState => {
   const backendState = data.state;
   
   const grid: GridState = {
@@ -11,7 +11,7 @@ const mapBackendResponse = (simId: string, data: any): SimulationState => {
     height: backendState.height,
     walls: backendState.walls || [],
     exits: backendState.exits || [],
-    fire_cells: backendState.fires || [],
+    hazard_cells: backendState.fires || [],
   };
 
   const agents: AgentState[] = Object.entries(backendState.agents || {}).map(([id, info]: [string, any]) => ({
@@ -29,9 +29,13 @@ const mapBackendResponse = (simId: string, data: any): SimulationState => {
   let status = 'RUNNING';
   if (data.type === 'completed') status = 'COMPLETED';
   if (data.type === 'error') status = 'FAILED';
+  
+  const hazard_type = scenario.includes('flood') ? 'FLOOD' : 'FIRE';
 
   return {
     simulation_id: simId,
+    scenario,
+    hazard_type,
     timestep: data.step,
     status,
     grid,
@@ -49,6 +53,7 @@ export const useSimulation = () => {
   const [error, setError] = useState<string | null>(null);
   
   const simulationIdRef = useRef<string | null>(null);
+  const scenarioRef = useRef<string | null>(null);
   const wsRef = useRef<SimulationWebSocket | null>(null);
 
   const cleanup = useCallback(() => {
@@ -66,8 +71,8 @@ export const useSimulation = () => {
     }
 
     if (data.type === 'state' || data.type === 'completed') {
-      if (simulationIdRef.current) {
-        setSimulationState(mapBackendResponse(simulationIdRef.current, data));
+      if (simulationIdRef.current && scenarioRef.current) {
+        setSimulationState(mapBackendResponse(simulationIdRef.current, data, scenarioRef.current));
       }
       if (data.type === 'completed') {
         setConnectionStatus('Completed');
@@ -84,6 +89,7 @@ export const useSimulation = () => {
       
       const { simulation_id } = await createSimulation(scenario, policy, seed);
       simulationIdRef.current = simulation_id;
+      scenarioRef.current = scenario;
       
       wsRef.current = new SimulationWebSocket(
         simulation_id,

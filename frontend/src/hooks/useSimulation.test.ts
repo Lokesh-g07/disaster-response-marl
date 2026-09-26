@@ -129,7 +129,7 @@ describe('useSimulation WebSocket Hook', () => {
     expect(result.current.simulationState).not.toBeNull();
     expect(result.current.simulationState?.timestep).toBe(5);
     expect(result.current.simulationState?.metrics.total_reward).toBe(100);
-    expect(result.current.simulationState?.grid.fire_cells.length).toBe(1);
+    expect(result.current.simulationState?.grid.hazard_cells.length).toBe(1);
     expect(result.current.simulationState?.agents.length).toBe(1);
   });
 

@@ -15,11 +15,13 @@ export interface GridState {
   height: number;
   walls: [number, number][];
   exits: [number, number][];
-  fire_cells: [number, number][];
+  hazard_cells: [number, number][];
 }
 
 export interface SimulationState {
   simulation_id: string;
+  scenario: string;
+  hazard_type: 'FIRE' | 'FLOOD';
   timestep: number;
   status: string; // CREATED, RUNNING, COMPLETED, FAILED, TERMINATED
   grid: GridState;
