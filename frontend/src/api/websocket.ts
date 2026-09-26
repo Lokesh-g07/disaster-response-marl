@@ -11,7 +11,7 @@ export class SimulationWebSocket {
     onError: (error: string) => void,
     onClose: () => void
   ) {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
     const wsUrl = baseUrl.replace(/^http/, 'ws') + `/ws/simulations/${simulationId}`;
     
     this.url = wsUrl;

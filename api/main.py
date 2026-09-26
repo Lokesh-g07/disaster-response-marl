@@ -23,3 +23,5 @@ app.include_router(policies.router)
 app.include_router(simulation.router)
 app.include_router(results.router)
 app.include_router(websocket.router)
+
+# Trigger reload
