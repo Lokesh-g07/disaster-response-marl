@@ -19,7 +19,7 @@ A primary focus of CrisisRL is validating that multi-agent coordination can emer
 
 ---
 
-## Phase 1, 2 & 3 Implementation Status: Completed ✅
+## Phase 1 to 5 Implementation Status: Completed ✅
 
 - [x] **Discrete Grid Representation (`DisasterGrid`)**: Spatial indexing for entities.
 - [x] **Stochastic Cellular Automata Hazard Engine**: Non-deterministic hazard propagation modeling real-world fire/flood spread.
@@ -31,7 +31,34 @@ A primary focus of CrisisRL is validating that multi-agent coordination can emer
 - [x] **Independent PPO**: Blind, non-cooperative baseline that receives only the visual grid to strictly prove the necessity of coordination signaling.
 - [x] **Rule-Based Benchmarks**: `GreedyNearestPolicy` and `GreedyLargestZonePolicy` oracle benchmarks.
 - [x] **Evaluation Framework**: A deterministic testing suite ensuring apples-to-apples comparisons of AI policies over identical random seeds.
-- [x] **Automated Test Suite**: 166 comprehensive tests for environment physics, dict observations, and RL architectures.
+- [x] **Automated Test Suite**: 172 comprehensive tests for environment physics, dict observations, and RL architectures.
+- [x] **Phase 4 - FastAPI**: A RESTful API serving simulation instances in memory, fetching RL checkpoints dynamically, and exposing environment step transitions.
+- [x] **Phase 5 - PostgreSQL Persistence**: Async SQLAlchemy integration logging experiment metadata, scenario usage, and final metrics into a relational database.
+
+---
+
+## API & Database Setup (Phase 4 & 5)
+
+CrisisRL now includes a FastAPI backend with PostgreSQL integration.
+
+### Database Setup
+1. Ensure PostgreSQL is installed and running on your system.
+2. Copy `.env.example` to `.env` and configure your credentials:
+   ```bash
+   cp .env.example .env
+   ```
+3. Run Alembic migrations to build the tables:
+   ```bash
+   python -m alembic upgrade head
+   ```
+*(Note: If PostgreSQL is unavailable, the API will still run normally in memory and gracefully ignore database persistence.)*
+
+### Running the API
+Start the FastAPI server:
+```bash
+uvicorn api.main:app --reload
+```
+View the interactive API documentation at: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 

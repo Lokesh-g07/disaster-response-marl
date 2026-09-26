@@ -5,7 +5,7 @@ env:
   max_steps: 50
 
 training:
-  num_episodes: 10
+  num_episodes: 350
   learning_rate: 1.0e-3
   gamma: 0.99
   buffer_capacity: 100000
@@ -19,8 +19,8 @@ training:
   device: "cpu" # Change to "cuda" if available
 
 evaluation:
-  eval_interval: 10
-  eval_episodes: 2
+  eval_interval: 25
+  eval_episodes: 5
 
 logging:
   save_dir: "./checkpoints"

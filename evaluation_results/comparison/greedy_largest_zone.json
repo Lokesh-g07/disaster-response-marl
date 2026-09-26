@@ -13,7 +13,7 @@
     "mean_casualties": 2.4,
     "mean_fire_exposures": 3.5,
     "mean_survivors_remaining": 0,
-    "mean_inference_time_ms": 0.36955991527065635,
+    "mean_inference_time_ms": 0.26557003147900105,
     "mean_average_rescue_step": 5.95
   },
   "episodes": [
@@ -50,7 +50,7 @@
         "rescue_0": 4,
         "rescue_1": 0
       },
-      "inference_time_ms": 0.39779976941645145,
+      "inference_time_ms": 0.25939999613910913,
       "evacuation_rate": 0.4,
       "average_rescue_step": 1.5
     },
@@ -87,7 +87,7 @@
         "rescue_0": 2,
         "rescue_1": 1
       },
-      "inference_time_ms": 0.5503997672349215,
+      "inference_time_ms": 0.2821998205035925,
       "evacuation_rate": 0.4,
       "average_rescue_step": 9.5
     },
@@ -126,7 +126,7 @@
         "rescue_0": 0,
         "rescue_1": 4
       },
-      "inference_time_ms": 0.4582001129165292,
+      "inference_time_ms": 0.18420000560581684,
       "evacuation_rate": 0.8,
       "average_rescue_step": 4.25
     },
@@ -162,7 +162,7 @@
         "rescue_0": 4,
         "rescue_1": 4
       },
-      "inference_time_ms": 0.40250003803521395,
+      "inference_time_ms": 0.24269998539239168,
       "evacuation_rate": 0.2,
       "average_rescue_step": 6
     },
@@ -200,7 +200,7 @@
         "rescue_0": 0,
         "rescue_1": 0
       },
-      "inference_time_ms": 0.22610020823776722,
+      "inference_time_ms": 0.1848001265898347,
       "evacuation_rate": 0.6,
       "average_rescue_step": 3.6666666666666665
     },
@@ -238,7 +238,7 @@
         "rescue_0": 1,
         "rescue_1": 4
       },
-      "inference_time_ms": 0.33179984893649817,
+      "inference_time_ms": 0.4363998305052519,
       "evacuation_rate": 0.6,
       "average_rescue_step": 10.333333333333334
     },
@@ -276,7 +276,7 @@
         "rescue_0": 2,
         "rescue_1": 1
       },
-      "inference_time_ms": 0.20579993724822998,
+      "inference_time_ms": 0.20930019672960043,
       "evacuation_rate": 0.6,
       "average_rescue_step": 3.6666666666666665
     },
@@ -312,7 +312,7 @@
         "rescue_0": 1,
         "rescue_1": 2
       },
-      "inference_time_ms": 0.26609981432557106,
+      "inference_time_ms": 0.2287003444507718,
       "evacuation_rate": 0.2,
       "average_rescue_step": 6
     },
@@ -351,7 +351,7 @@
         "rescue_0": 0,
         "rescue_1": 1
       },
-      "inference_time_ms": 0.26269990485161543,
+      "inference_time_ms": 0.19020005129277706,
       "evacuation_rate": 0.8,
       "average_rescue_step": 4.25
     },
@@ -389,7 +389,7 @@
         "rescue_0": 2,
         "rescue_1": 2
       },
-      "inference_time_ms": 0.5941997515037656,
+      "inference_time_ms": 0.43779995758086443,
       "evacuation_rate": 0.6,
       "average_rescue_step": 10.333333333333334
     }

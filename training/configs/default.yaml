@@ -5,7 +5,7 @@ env:
   max_steps: 50
 
 training:
-  num_episodes: 1000
+  num_episodes: 350
   num_steps: 50  # Steps per episode rollout
   actor_lr: 3.0e-4
   critic_lr: 1.0e-3
@@ -20,9 +20,9 @@ training:
   device: "cpu" # Change to "cuda" if available
 
 evaluation:
-  eval_interval: 50
+  eval_interval: 25
   eval_episodes: 5
 
 logging:
   save_dir: "./checkpoints"
-  save_interval: 100
+  save_interval: 350
