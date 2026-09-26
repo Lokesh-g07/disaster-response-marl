@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api.routes import health, scenarios, policies, simulation, results
+from api.routes import health, scenarios, policies, simulation, results, websocket
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -22,3 +22,4 @@ app.include_router(scenarios.router)
 app.include_router(policies.router)
 app.include_router(simulation.router)
 app.include_router(results.router)
+app.include_router(websocket.router)
