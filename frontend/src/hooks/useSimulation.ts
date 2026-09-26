@@ -3,7 +3,14 @@ import type { SimulationState, GridState, AgentState, SurvivorState } from '../t
 import { createSimulation } from '../api/simulations';
 import { SimulationWebSocket } from '../api/websocket';
 
-const mapBackendResponse = (simId: string, data: any, scenario: string): SimulationState => {
+const mapBackendResponse = (
+  simId: string, 
+  data: any, 
+  scenario: string,
+  policy: string,
+  seed: number,
+  prevAgents: AgentState[] = []
+): SimulationState => {
   const backendState = data.state;
   
   const grid: GridState = {
@@ -14,16 +21,50 @@ const mapBackendResponse = (simId: string, data: any, scenario: string): Simulat
     hazard_cells: backendState.fires || [],
   };
 
-  const agents: AgentState[] = Object.entries(backendState.agents || {}).map(([id, info]: [string, any]) => ({
-    id,
-    position: info.position,
-    status: info.active ? 'active' : 'idle',
-  }));
+  const agents: AgentState[] = Object.entries(backendState.agents || {}).map(([id, info]: [string, any]) => {
+    const prevAgent = prevAgents.find(a => a.id === id);
+    const action = data.actions ? data.actions[id] : undefined;
+    
+    let status = 'UNKNOWN';
+    if (!info.active) {
+      status = 'INACTIVE';
+    } else if (action !== undefined) {
+      if (action === 0) {
+        status = 'STAYING';
+      } else {
+        // If agent tried to move (1=UP, 2=DOWN, 3=LEFT, 4=RIGHT)
+        if (prevAgent) {
+          const moved = prevAgent.position[0] !== info.position[0] || prevAgent.position[1] !== info.position[1];
+          status = moved ? 'MOVING' : 'BLOCKED';
+        } else {
+          status = 'MOVING'; // Can't determine block status without prev pos
+        }
+      }
+    } else {
+      status = 'IDLE'; // No action taken yet (e.g., initial state)
+    }
+
+    const actionHistory = prevAgent ? [...prevAgent.actionHistory] : [];
+    if (action !== undefined) {
+      actionHistory.push(action);
+      if (actionHistory.length > 5) {
+        actionHistory.shift();
+      }
+    }
+
+    return {
+      id,
+      position: info.position,
+      status,
+      lastAction: action,
+      actionHistory,
+    };
+  });
 
   const survivors: SurvivorState[] = (backendState.survivors || []).map((pos: [number, number], index: number) => ({
     id: `survivor_${index}`,
     position: pos,
-    rescued: false, // The backend only returns active survivors in the array
+    rescued: false, // Backend only returns active survivors
   }));
 
   let status = 'RUNNING';
@@ -35,6 +76,8 @@ const mapBackendResponse = (simId: string, data: any, scenario: string): Simulat
   return {
     simulation_id: simId,
     scenario,
+    policy,
+    seed,
     hazard_type,
     timestep: data.step,
     status,
@@ -54,6 +97,8 @@ export const useSimulation = () => {
   
   const simulationIdRef = useRef<string | null>(null);
   const scenarioRef = useRef<string | null>(null);
+  const policyRef = useRef<string | null>(null);
+  const seedRef = useRef<number | null>(null);
   const wsRef = useRef<SimulationWebSocket | null>(null);
 
   const cleanup = useCallback(() => {
@@ -71,8 +116,17 @@ export const useSimulation = () => {
     }
 
     if (data.type === 'state' || data.type === 'completed') {
-      if (simulationIdRef.current && scenarioRef.current) {
-        setSimulationState(mapBackendResponse(simulationIdRef.current, data, scenarioRef.current));
+      if (simulationIdRef.current && scenarioRef.current && policyRef.current && seedRef.current !== null) {
+        setSimulationState((prev) => 
+          mapBackendResponse(
+            simulationIdRef.current!, 
+            data, 
+            scenarioRef.current!,
+            policyRef.current!,
+            seedRef.current!,
+            prev ? prev.agents : []
+          )
+        );
       }
       if (data.type === 'completed') {
         setConnectionStatus('Completed');
@@ -90,6 +144,8 @@ export const useSimulation = () => {
       const { simulation_id } = await createSimulation(scenario, policy, seed);
       simulationIdRef.current = simulation_id;
       scenarioRef.current = scenario;
+      policyRef.current = policy;
+      seedRef.current = seed;
       
       wsRef.current = new SimulationWebSocket(
         simulation_id,

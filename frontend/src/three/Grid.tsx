@@ -1,5 +1,6 @@
 import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { SimulationState } from '../types';
 
@@ -151,35 +152,56 @@ export const Grid: React.FC<GridProps> = ({ state }) => {
               <meshStandardMaterial color="#fbd38d" />
             </mesh>
             <pointLight color="#f6ad55" distance={1.5} intensity={0.5} />
+            <Html position={[0, 0.4, 0]} center zIndexRange={[100, 0]}>
+              <div className="text-[9px] font-mono font-bold text-orange-300 px-1 rounded-sm bg-gray-900/60 backdrop-blur-sm">
+                ACTIVE
+              </div>
+            </Html>
           </group>
         ))}
       </group>
 
       {/* Rescue Agents (Drones) */}
-      {state.agents.map((agent) => (
-        <group key={`agent-${agent.id}`} position={[agent.position[1], 0.6, agent.position[0]]}>
-          {/* Drone Body */}
-          <mesh castShadow>
-            <boxGeometry args={[0.5, 0.2, 0.5]} />
-            <meshStandardMaterial color="#3182ce" metalness={0.5} roughness={0.2} />
-          </mesh>
-          {/* Top light / Sensor */}
-          <mesh position={[0, 0.15, 0]}>
-            <sphereGeometry args={[0.08, 8, 8]} />
-            <meshStandardMaterial color="#63b3ed" emissive="#63b3ed" emissiveIntensity={1} />
-          </mesh>
-          {/* Drone Arms */}
-          <mesh position={[0, 0, 0]} rotation={[0, Math.PI/4, 0]}>
-            <boxGeometry args={[0.7, 0.05, 0.05]} />
-            <meshStandardMaterial color="#2b6cb0" />
-          </mesh>
-          <mesh position={[0, 0, 0]} rotation={[0, -Math.PI/4, 0]}>
-            <boxGeometry args={[0.7, 0.05, 0.05]} />
-            <meshStandardMaterial color="#2b6cb0" />
-          </mesh>
-          <pointLight color="#90cdf4" distance={3} intensity={1} />
-        </group>
-      ))}
+      {state.agents.map((agent) => {
+        const isBlocked = agent.status === 'BLOCKED';
+        const isMoving = agent.status === 'MOVING';
+        const isInactive = agent.status === 'INACTIVE';
+        const bodyColor = isInactive ? "#718096" : "#3182ce";
+        const emissiveColor = isInactive ? "#000000" : (isBlocked ? "#fc8181" : (isMoving ? "#63b3ed" : "#4299e1"));
+
+        return (
+          <group key={`agent-${agent.id}`} position={[agent.position[1], 0.6, agent.position[0]]}>
+            {/* Drone Body */}
+            <mesh castShadow>
+              <boxGeometry args={[0.5, 0.2, 0.5]} />
+              <meshStandardMaterial color={bodyColor} metalness={0.5} roughness={0.2} />
+            </mesh>
+            {/* Top light / Sensor */}
+            <mesh position={[0, 0.15, 0]}>
+              <sphereGeometry args={[0.08, 8, 8]} />
+              <meshStandardMaterial color={emissiveColor} emissive={emissiveColor} emissiveIntensity={isMoving ? 2 : 1} />
+            </mesh>
+            
+            <Html position={[0, 0.5, 0]} center zIndexRange={[100, 0]}>
+              <div className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-sm shadow-sm whitespace-nowrap bg-gray-900/80 backdrop-blur-sm ${isBlocked ? 'text-red-400 border border-red-500/50' : isMoving ? 'text-green-400' : 'text-gray-300'}`}>
+                {agent.id.replace('_', ' ')}
+                {isBlocked && ' [BLOCKED]'}
+              </div>
+            </Html>
+
+            {/* Drone Arms */}
+            <mesh position={[0, 0, 0]} rotation={[0, Math.PI/4, 0]}>
+              <boxGeometry args={[0.7, 0.05, 0.05]} />
+              <meshStandardMaterial color={isInactive ? "#4a5568" : "#2b6cb0"} />
+            </mesh>
+            <mesh position={[0, 0, 0]} rotation={[0, -Math.PI/4, 0]}>
+              <boxGeometry args={[0.7, 0.05, 0.05]} />
+              <meshStandardMaterial color={isInactive ? "#4a5568" : "#2b6cb0"} />
+            </mesh>
+            {!isInactive && <pointLight color={emissiveColor} distance={3} intensity={isMoving ? 1.5 : 1} />}
+          </group>
+        );
+      })}
     </group>
   );
 };

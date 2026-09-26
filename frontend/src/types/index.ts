@@ -1,7 +1,9 @@
 export interface AgentState {
   id: string;
   position: [number, number]; // [x, y]
-  status: string; // active, idle, etc.
+  status: string; // MOVING, STAYING, BLOCKED, etc.
+  lastAction?: number;
+  actionHistory: number[];
 }
 
 export interface SurvivorState {
@@ -21,6 +23,8 @@ export interface GridState {
 export interface SimulationState {
   simulation_id: string;
   scenario: string;
+  policy: string;
+  seed: number;
   hazard_type: 'FIRE' | 'FLOOD';
   timestep: number;
   status: string; // CREATED, RUNNING, COMPLETED, FAILED, TERMINATED

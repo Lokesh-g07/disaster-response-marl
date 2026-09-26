@@ -15,7 +15,8 @@ async def _do_step(websocket: WebSocket, sim_id: str, db: AsyncSession) -> bool:
             "simulation_id": sim_id,
             "step": resp.step,
             "state": resp.state,
-            "metrics": resp.metrics
+            "metrics": resp.metrics,
+            "actions": resp.actions
         })
         return resp.terminated or resp.truncated
     except ValueError as e:

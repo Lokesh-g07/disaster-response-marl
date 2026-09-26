@@ -14,6 +14,8 @@ describe('MetricsPanel', () => {
     const mockState: SimulationState = {
       simulation_id: '123',
       scenario: 'fire_small.json',
+      policy: 'MAPPO',
+      seed: 42,
       hazard_type: 'FIRE',
       timestep: 5,
       status: 'RUNNING',
