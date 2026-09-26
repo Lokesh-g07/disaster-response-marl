@@ -1,6 +1,44 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { SimulationState } from '../types';
+import type { SimulationState, GridState, AgentState, SurvivorState } from '../types';
 import { createSimulation, stepSimulation, terminateSimulation } from '../api/simulations';
+
+const mapBackendResponse = (simId: string, data: any): SimulationState => {
+  const backendState = data.state;
+  
+  const grid: GridState = {
+    width: backendState.width,
+    height: backendState.height,
+    walls: backendState.walls || [],
+    exits: backendState.exits || [],
+    fire_cells: backendState.fires || [],
+  };
+
+  const agents: AgentState[] = Object.entries(backendState.agents || {}).map(([id, info]: [string, any]) => ({
+    id,
+    position: info.position,
+    status: info.active ? 'active' : 'idle',
+  }));
+
+  const survivors: SurvivorState[] = (backendState.survivors || []).map((pos: [number, number], index: number) => ({
+    id: `survivor_${index}`,
+    position: pos,
+    rescued: false, // The backend only returns active survivors in the array
+  }));
+
+  let status = 'RUNNING';
+  if (data.terminated) status = 'COMPLETED';
+  if (data.truncated) status = 'FAILED';
+
+  return {
+    simulation_id: simId,
+    timestep: data.step,
+    status,
+    grid,
+    agents,
+    survivors,
+    metrics: data.metrics,
+  };
+};
 
 export const useSimulation = () => {
   const [simulationState, setSimulationState] = useState<SimulationState | null>(null);
@@ -19,8 +57,8 @@ export const useSimulation = () => {
       simulationIdRef.current = simulation_id;
       
       // Get initial state
-      const initialState = await stepSimulation(simulation_id);
-      setSimulationState(initialState);
+      const initialResponse = await stepSimulation(simulation_id);
+      setSimulationState(mapBackendResponse(simulation_id, initialResponse));
       
       setIsRunning(true);
     } catch (err: any) {
@@ -33,7 +71,8 @@ export const useSimulation = () => {
     if (!simulationIdRef.current) return;
     
     try {
-      const state = await stepSimulation(simulationIdRef.current);
+      const response = await stepSimulation(simulationIdRef.current);
+      const state = mapBackendResponse(simulationIdRef.current, response);
       setSimulationState(state);
       
       if (state.status === 'COMPLETED' || state.status === 'FAILED') {
