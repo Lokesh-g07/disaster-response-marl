@@ -22,7 +22,10 @@ vi.mock('@react-three/fiber', () => ({
 const mockState: SimulationState = {
   simulation_id: 'test_123',
   scenario: 'test',
-  tick: 0,
+  policy: 'test',
+  seed: 0,
+  timestep: 0,
+  status: 'RUNNING',
   grid: {
     width: 10,
     height: 10,
@@ -73,7 +76,7 @@ describe('Grid Coordinate Mapping Tests', () => {
     // Width 10, Height 10
     // offsetX = -(10 - 1) / 2 = -4.5
     // offsetZ = -(10 - 1) / 2 = -4.5
-    expect(gridNode.props.position).toEqual([-4.5, 0, -4.5]);
+    expect((gridNode as any).props.position).toEqual([-4.5, 0, -4.5]);
   });
 
   it('correctly places floor tiles for all non-wall cells', () => {
@@ -89,13 +92,13 @@ describe('Grid Coordinate Mapping Tests', () => {
     expect(tile0_0.props.position).toEqual([0, 0, 0]);
   });
 
-  it('correctly maps wall coordinates (row->Z, col->X)', () => {
+  it('correctly maps wall coordinates via WallSegment props', () => {
     const gridNode = Grid({ state: mockState }) as React.ReactElement;
     const walls = findChildrenByKeyPrefix(gridNode, 'wall-');
     
     expect(walls.length).toBe(1);
-    // Wall at [5, 5] -> x=5, z=5
-    expect(walls[0].props.position).toEqual([5, 0.6, 5]);
+    // Wall pos = [5, 5]
+    expect(walls[0].props.pos).toEqual([5, 5]);
   });
 
   it('correctly maps exit coordinates', () => {
@@ -103,17 +106,17 @@ describe('Grid Coordinate Mapping Tests', () => {
     const exits = findChildrenByKeyPrefix(gridNode, 'exit-');
     
     expect(exits.length).toBe(1);
-    // Exit at [0, 9] (row 0, col 9) -> x=9, z=0
-    expect(exits[0].props.position).toEqual([9, 0, 0]);
+    // Exit props.pos = [0, 9] (row 0, col 9)
+    expect(exits[0].props.pos).toEqual([0, 9]);
   });
 
-  it('correctly maps survivor coordinates', () => {
+  it('correctly maps survivor coordinates via SurvivorEntity props', () => {
     const gridNode = Grid({ state: mockState }) as React.ReactElement;
     const survivors = findChildrenByKeyPrefix(gridNode, 'survivor-');
     
     expect(survivors.length).toBe(1);
-    // Survivor at [8, 8] -> x=8, z=8
-    expect(survivors[0].props.position).toEqual([8, 0.45, 8]);
+    // Survivor at [8, 8]
+    expect(survivors[0].props.survivor.position).toEqual([8, 8]);
   });
 
   it('correctly maps agent coordinates via AgentDrone props', () => {
@@ -125,13 +128,13 @@ describe('Grid Coordinate Mapping Tests', () => {
     expect(agents[0].props.agent.position).toEqual([1, 1]);
   });
 
-  it('correctly maps hazard coordinates', () => {
+  it('correctly maps hazard coordinates via Hazard props', () => {
     const gridNode = Grid({ state: mockState }) as React.ReactElement;
     const fireHazards = findChildrenByKeyPrefix(gridNode, 'fire-');
     
     expect(fireHazards.length).toBe(1);
-    // Fire at [2, 2] -> x=2, z=2
-    expect(fireHazards[0].props.position).toEqual([2, 0.4, 2]);
+    // Fire pos = [2, 2]
+    expect(fireHazards[0].props.pos).toEqual([2, 2]);
   });
 
   it('adapts to non-square grid dimensions without breaking mapping', () => {
@@ -140,6 +143,6 @@ describe('Grid Coordinate Mapping Tests', () => {
     
     // offsetX = -(20 - 1) / 2 = -9.5
     // offsetZ = -(5 - 1) / 2 = -2.0
-    expect(gridNode.props.position).toEqual([-9.5, 0, -2.0]);
+    expect((gridNode as any).props.position).toEqual([-9.5, 0, -2.0]);
   });
 });
