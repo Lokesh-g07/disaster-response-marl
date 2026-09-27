@@ -21,7 +21,7 @@ from rl.mappo import MAPPO, RolloutBuffer
 
 def main():
     # Load config
-    config_path = Path("training/configs/default.yaml")
+    config_path = Path("training/configs/smoke.yaml")
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 

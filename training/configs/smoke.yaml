@@ -1,0 +1,28 @@
+# Default MAPPO Training Configuration
+
+env:
+  scenario: "simulation/scenarios/examples/tiny_sanity.json"
+  max_steps: 25
+
+training:
+  num_episodes: 50
+  num_steps: 50  # Steps per episode rollout
+  actor_lr: 3.0e-4
+  critic_lr: 1.0e-3
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_param: 0.2
+  ppo_epoch: 10
+  num_mini_batch: 2
+  entropy_coef: 0.01
+  value_loss_coef: 0.5
+  max_grad_norm: 0.5
+  device: "cpu" # Change to "cuda" if available
+
+evaluation:
+  eval_interval: 10
+  eval_episodes: 2
+
+logging:
+  save_dir: "./checkpoints"
+  save_interval: 20

@@ -61,15 +61,16 @@ def evaluate(model_path, scenario_path, num_episodes=5, delay=0.1, render=True):
             if not active_agents:
                 break
                 
-            obs_list = [obs_dict[agent] for agent in active_agents]
-            obs_batch = np.stack(obs_list)
+            visual_list = [obs_dict[agent]["visual"] for agent in active_agents]
+            vector_list = [obs_dict[agent]["vector"] for agent in active_agents]
             
             # During evaluation, we only need local observations
             # We can use the actor directly
             with torch.no_grad():
-                obs_tensor = torch.tensor(obs_batch, dtype=torch.float32).to(device)
-                action_dists = mappo.actor(obs_tensor)
-                actions = action_dists.sample().cpu().numpy()
+                visual_tensor = torch.tensor(np.stack(visual_list), dtype=torch.float32).to(device)
+                vector_tensor = torch.tensor(np.stack(vector_list), dtype=torch.float32).to(device)
+                action_dists = mappo.actor(visual_tensor, vector_tensor)
+                actions = action_dists.logits.argmax(dim=-1).cpu().numpy()
                 
             action_dict = {agent: int(actions[i]) for i, agent in enumerate(active_agents)}
             

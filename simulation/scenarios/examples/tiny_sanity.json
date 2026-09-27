@@ -1,0 +1,15 @@
+{
+  "name": "Tiny Sanity",
+  "width": 5,
+  "height": 5,
+  "agents": [{"id": "rescue_0", "position": [0, 0]}],
+  "survivors": [[0, 4]],
+  "exits": [[4, 4]],
+  "walls": [],
+  "fire": [],
+  "hazard": {
+    "type": "FIRE",
+    "probability": 0.0,
+    "max_steps": 25
+  }
+}
