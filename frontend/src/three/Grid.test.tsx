@@ -9,7 +9,8 @@ vi.mock('react', async () => {
   return {
     ...actual,
     useRef: () => ({ current: null }),
-    useMemo: (cb) => cb()
+    useMemo: (cb: any) => cb(),
+    useEffect: () => {}
   };
 });
 
@@ -115,13 +116,13 @@ describe('Grid Coordinate Mapping Tests', () => {
     expect(survivors[0].props.position).toEqual([8, 0.45, 8]);
   });
 
-  it('correctly maps agent coordinates', () => {
+  it('correctly maps agent coordinates via AgentDrone props', () => {
     const gridNode = Grid({ state: mockState }) as React.ReactElement;
     const agents = findChildrenByKeyPrefix(gridNode, 'agent-');
     
     expect(agents.length).toBe(1);
-    // Agent at [1, 1] -> x=1, z=1
-    expect(agents[0].props.position).toEqual([1, 0.6, 1]);
+    // Agent properties should be passed to AgentDrone correctly
+    expect(agents[0].props.agent.position).toEqual([1, 1]);
   });
 
   it('correctly maps hazard coordinates', () => {
