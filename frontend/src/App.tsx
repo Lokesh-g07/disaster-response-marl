@@ -74,17 +74,6 @@ function App() {
             </div>
           </div>
           <p className="text-gray-400 text-xs font-medium uppercase tracking-widest opacity-80">Multi-Agent Responder</p>
-          
-          {simulationState && (
-            <div className="mt-3 pt-3 border-t border-gray-700/50 flex justify-between items-center">
-              <span className="text-[10px] font-bold text-gray-500 uppercase">Disaster Type</span>
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
-                simulationState.hazard_type === 'FLOOD' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'
-              }`}>
-                {simulationState.hazard_type}
-              </span>
-            </div>
-          )}
         </div>
         
         <SimulationControls 

@@ -1,128 +1,147 @@
 import React from 'react';
 import { SimulationState, AgentState } from '../types';
+import { Flame, Waves, Users, Activity, ShieldAlert } from 'lucide-react';
 
 interface MetricsPanelProps {
   state: SimulationState | null;
 }
 
-const ACTION_LABELS: Record<number, string> = {
-  0: 'STAY',
-  1: 'UP',
-  2: 'DOWN',
-  3: 'LEFT',
-  4: 'RIGHT',
-};
-
-const ACTION_ARROWS: Record<number, string> = {
-  0: '•', // STAY
-  1: '↑', // UP
-  2: '↓', // DOWN
-  3: '←', // LEFT
-  4: '→', // RIGHT
-};
-
 export const MetricsPanel: React.FC<MetricsPanelProps> = ({ state }) => {
   if (!state) return null;
   
   const { metrics, timestep, agents } = state;
+  const isCompleted = state.status === 'COMPLETED';
+  const isError = state.status === 'ERROR' || state.status === 'FAILED';
   
   return (
-    <div className="absolute top-4 right-4 flex flex-col gap-4 z-10 w-80 max-h-[90vh] overflow-y-auto custom-scrollbar">
-      {/* Context Panel */}
-      <div className="bg-gray-800/90 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-gray-700/50">
-        <h3 className="text-sm font-black border-b border-gray-700/50 pb-2 mb-3 text-gray-400 tracking-widest uppercase">Context</h3>
-        <div className="grid grid-cols-2 gap-y-2 text-xs">
-          <div className="text-gray-500">POLICY</div>
-          <div className="font-mono font-bold text-white">{state.policy}</div>
-          
-          <div className="text-gray-500">SCENARIO</div>
-          <div className="font-mono font-bold text-white">{state.scenario}</div>
-          
-          <div className="text-gray-500">SEED</div>
-          <div className="font-mono font-bold text-white">{state.seed}</div>
-          
-          <div className="text-gray-500">DISASTER</div>
-          <div className="font-mono font-bold text-red-400">{state.hazard_type}</div>
-        </div>
-      </div>
-
-      {/* Live Metrics Panel */}
-      <div className="bg-gray-800/90 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-gray-700/50">
-        <h3 className="text-sm font-black border-b border-gray-700/50 pb-2 mb-3 text-gray-400 tracking-widest uppercase">Live Metrics</h3>
-        
-        <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm font-medium">
-          <div className="text-gray-400">Status</div>
-          <div className={`font-mono font-bold tracking-wider ${state.status === 'RUNNING' ? 'text-green-400' : state.status === 'COMPLETED' ? 'text-blue-400' : 'text-yellow-400'}`}>
-            {state.status}
+    <div className="absolute top-4 right-4 flex flex-col gap-4 z-10 w-80 max-h-[90vh] overflow-y-auto custom-scrollbar font-sans">
+      
+      {/* HUD Header & Simulation Info */}
+      <div className="bg-slate-900/80 backdrop-blur-md rounded-lg shadow-2xl border border-slate-700/50 overflow-hidden">
+        <div className="bg-slate-800/80 p-3 border-b border-slate-700/50 flex justify-between items-center">
+          <h2 className="text-xs font-black text-slate-300 tracking-widest uppercase">
+            Disaster Response
+          </h2>
+          <div className="flex items-center gap-2">
+            <span className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+              isCompleted ? 'bg-blue-500/20 text-blue-400' :
+              isError ? 'bg-red-500/20 text-red-400' :
+              state.status === 'RUNNING' ? 'bg-green-500/20 text-green-400' :
+              'bg-yellow-500/20 text-yellow-400'
+            }`}>
+              {state.status === 'RUNNING' && <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
+              {isCompleted ? 'SIMULATION COMPLETE' : isError ? 'SIMULATION ERROR' : state.status}
+            </span>
           </div>
-          
-          <div className="text-gray-400">Timestep</div>
-          <div className="font-mono font-bold text-white">STEP {timestep}</div>
-          
-          <div className="text-gray-400">Reward</div>
-          <div className="font-mono font-bold text-green-400">{metrics.total_reward.toFixed(1)}</div>
-          
-          <div className="text-gray-400">Rescued</div>
-          <div className="font-mono font-bold text-blue-400">{metrics.survivors_rescued}</div>
-          
-          <div className="text-gray-400">Remaining</div>
-          <div className="font-mono font-bold text-orange-400">{metrics.survivors_remaining}</div>
-          
-          <div className="text-gray-400">Evac Rate</div>
-          <div className="font-mono font-bold text-white">{(metrics.evacuation_rate * 100).toFixed(0)}%</div>
-          
-          <div className="text-gray-400">Casualties</div>
-          <div className="font-mono font-bold text-red-500">{metrics.casualties}</div>
         </div>
-      </div>
-
-      {/* Agent Decisions Panel */}
-      <div className="bg-gray-800/90 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-gray-700/50">
-        <h3 className="text-sm font-black border-b border-gray-700/50 pb-2 mb-3 text-gray-400 tracking-widest uppercase">Agent Decisions</h3>
         
-        <div className="flex flex-col gap-4">
-          {agents.map((agent: AgentState) => (
-            <div key={agent.id} className="bg-gray-900/50 p-3 rounded-lg border border-gray-700/30">
-              <div className="font-bold text-blue-400 mb-2 uppercase tracking-wider text-xs">{agent.id.replace('_', ' ')}</div>
-              
-              <div className="grid grid-cols-3 gap-2 text-xs mb-2">
-                <div className="text-gray-500">Position</div>
-                <div className="col-span-2 font-mono text-white">({agent.position[0]}, {agent.position[1]})</div>
-                
-                <div className="text-gray-500">Action</div>
-                <div className="col-span-2 font-mono font-bold text-yellow-400">
-                  {agent.lastAction !== undefined ? ACTION_LABELS[agent.lastAction] : 'NONE'}
-                </div>
-                
-                <div className="text-gray-500">Status</div>
-                <div className={`col-span-2 font-mono font-bold ${
-                  agent.status === 'BLOCKED' ? 'text-red-400' : 
-                  agent.status === 'MOVING' ? 'text-green-400' : 
-                  'text-gray-400'
-                }`}>
-                  {agent.status}
-                </div>
-
-                <div className="text-gray-500">Target</div>
-                <div className="col-span-2 font-mono text-gray-500">Not explicitly assigned</div>
-              </div>
-              
-              {agent.actionHistory && agent.actionHistory.length > 0 && (
-                <div className="mt-3 pt-2 border-t border-gray-800">
-                  <div className="text-[10px] text-gray-500 mb-1 uppercase">Recent Actions</div>
-                  <div className="flex gap-2">
-                    {agent.actionHistory.map((act, idx) => (
-                      <span key={idx} className="font-mono text-sm text-gray-300" title={ACTION_LABELS[act]}>
-                        {ACTION_ARROWS[act]}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+        <div className="p-4 grid grid-cols-2 gap-3 text-sm">
+          <div className="col-span-2 flex items-center justify-between bg-slate-800/50 p-2 rounded border border-slate-700/30">
+            <div className="flex items-center gap-2">
+              {state.hazard_type === 'FLOOD' ? <Waves size={16} className="text-blue-400" /> : <Flame size={16} className="text-orange-500" />}
+              <span className={`font-black tracking-widest ${state.hazard_type === 'FLOOD' ? 'text-blue-400' : 'text-orange-500'}`}>
+                {state.hazard_type}
+              </span>
             </div>
-          ))}
+            <div className="text-slate-300 font-mono font-bold text-xs bg-slate-900 px-2 py-1 rounded">
+              STEP {timestep}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[10px] text-slate-500 uppercase font-bold">Scenario</div>
+            <div className="font-mono text-slate-200 text-xs mt-0.5">{state.scenario}</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-slate-500 uppercase font-bold">Policy</div>
+            <div className="font-mono text-slate-200 text-xs mt-0.5">{state.policy}</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-slate-500 uppercase font-bold">Seed</div>
+            <div className="font-mono text-slate-200 text-xs mt-0.5">{state.seed}</div>
+          </div>
         </div>
       </div>
+
+      {/* Survivor Metrics */}
+      <div className="bg-slate-900/80 backdrop-blur-md rounded-lg shadow-2xl border border-slate-700/50 p-4">
+        <div className="flex items-center gap-2 border-b border-slate-700/50 pb-2 mb-3 text-slate-300">
+          <Users size={14} />
+          <h3 className="text-xs font-black tracking-widest uppercase">Survivors</h3>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-2 text-center mb-4">
+          <div className="bg-slate-800/50 rounded p-2">
+            <div className="text-[10px] text-slate-400 uppercase font-bold mb-1">Rescued</div>
+            <div className="font-mono text-lg font-bold text-blue-400">{metrics.survivors_rescued}</div>
+          </div>
+          <div className="bg-slate-800/50 rounded p-2">
+            <div className="text-[10px] text-slate-400 uppercase font-bold mb-1">Remaining</div>
+            <div className="font-mono text-lg font-bold text-orange-400">{metrics.survivors_remaining}</div>
+          </div>
+          <div className="bg-slate-800/50 rounded p-2 border border-red-900/30">
+            <div className="text-[10px] text-slate-400 uppercase font-bold mb-1">Casualties</div>
+            <div className="font-mono text-lg font-bold text-red-500">{metrics.casualties}</div>
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-between bg-slate-800/80 p-3 rounded border border-slate-700/50">
+          <div className="flex items-center gap-2">
+            <Activity size={14} className="text-emerald-400" />
+            <span className="text-[10px] font-black text-slate-300 tracking-widest uppercase">Evacuation Rate</span>
+          </div>
+          <span className="font-mono text-lg font-bold text-emerald-400">
+            {(metrics.evacuation_rate * 100).toFixed(0)}%
+          </span>
+        </div>
+      </div>
+
+      {/* Agent Status Panel */}
+      <div className="bg-slate-900/80 backdrop-blur-md rounded-lg shadow-2xl border border-slate-700/50 p-4">
+        <div className="flex items-center gap-2 border-b border-slate-700/50 pb-2 mb-3 text-slate-300">
+          <ShieldAlert size={14} />
+          <h3 className="text-xs font-black tracking-widest uppercase">Agents</h3>
+        </div>
+        
+        <div className="flex flex-col gap-2">
+          {agents.map((agent: AgentState) => {
+            const isBlocked = agent.status === 'BLOCKED';
+            const isMoving = agent.status === 'MOVING';
+            const isStaying = agent.status === 'STAYING';
+            
+            return (
+              <div key={agent.id} className="flex items-center justify-between bg-slate-800/50 p-2.5 rounded border border-slate-700/30">
+                <span className="font-bold text-slate-200 text-xs uppercase tracking-wide">
+                  {agent.id.replace('_', ' ')}
+                </span>
+                
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                    isBlocked ? 'text-red-400' :
+                    isMoving ? 'text-blue-400' :
+                    isStaying ? 'text-slate-400' :
+                    'text-slate-500'
+                  }`}>
+                    {agent.status}
+                  </span>
+                  <div className={`w-2 h-2 rounded-full ${
+                    isBlocked ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
+                    isMoving ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' :
+                    isStaying ? 'bg-slate-400' :
+                    'bg-slate-600'
+                  }`} />
+                </div>
+              </div>
+            );
+          })}
+          {agents.length === 0 && (
+            <div className="text-center text-slate-500 text-xs italic py-2">
+              No active agents
+            </div>
+          )}
+        </div>
+      </div>
+      
     </div>
   );
 };
